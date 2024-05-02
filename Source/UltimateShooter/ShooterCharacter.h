@@ -38,8 +38,10 @@ protected:
 	*/
 	void LookUpRate(float Rate);
 
-	/** Called when the fire button is pressed */
+	/** Called when the fire button is pressed */ 
 	void FireWeapon();
+
+	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation);
 
 	/**
 	* Rotate controller based on mouse X movement
