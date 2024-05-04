@@ -18,6 +18,25 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/** Called when overlapping AreaSphere */
+	UFUNCTION()
+	void OnSphereOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+
+	/** Called when End Overlapping AreaSphere */
+	UFUNCTION()
+	void OnSphereEndOverlap(
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex);
+		
+
 private:
 	/** Skeletal Mesh for the item */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
@@ -31,9 +50,12 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
 	class UWidgetComponent* PickupWidget;
 
-	
-	
+	/** Enables item tracing when overlapped */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	class USphereComponent* AreaSphere;
+
 public:	
-	
+	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickupWidget; }
+	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
 
 };

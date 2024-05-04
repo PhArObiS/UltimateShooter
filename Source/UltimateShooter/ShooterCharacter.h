@@ -79,6 +79,11 @@ protected:
 	UFUNCTION()
 	void AutoFireReset();
 
+	/** Line trace for items under the crosshairs */
+	bool TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHitLocation);
+
+	/** Trace for items if Overlapped ItemCount > 0 */
+	void TraceForItems();
 
 private:
 	/** Camera boom positioning the camera behind the character */
@@ -192,12 +197,24 @@ private:
 
 	bool bFireButtonPressed;
 
+	/** True when we can fire. False when waiting for the timer */
 	bool bShouldFire;
 
+	/** Rate of automatic gun fire */
 	float AutomaticFireRate;
 
+	/** Sets a timer between gunshots */
 	FTimerHandle AutoFireTimer;
-	
+
+	/** true if we should trace every frame for items */
+	bool bShouldTraceForItems;
+
+	/** Number of overlapped AItems */
+	int8 OverlappedItemCount;
+
+	/** Shooting component for crosshair spread */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
+	class AItem* TraceHitItemLastFrame;
 	
 public:
 	/** Returns CameraBoom subobject **/
@@ -210,4 +227,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	float GetCrosshairSpreadMultiplier() const;
 
+	FORCEINLINE int8 GetOverlappedItemCount() const { return OverlappedItemCount; }
+
+	/** Adds/subtracts  to/form OverlappedItemCount and updates bShouldTraceForItems */
+	void IncrementOverlappedItemCount(int8 Amount); 
 };
