@@ -85,9 +85,20 @@ protected:
 	/** Trace for items if Overlapped ItemCount > 0 */
 	void TraceForItems();
 
+	/** Spawns a default weapon and equips it */
 	class AWeapon* SpawnDefaultWeapon();
 
+	/** Takes a weapon and attaches it to the mesh */
 	void EquipWeapon(AWeapon* WeaponToEquip);
+
+	/** Deatch weapon and let it fall to the ground */
+	void DropWeapon();
+
+	void SelectButtonPressed();
+	void SelectButtonReleased();
+	
+	/** Drops current weapon */
+	void SwapWeapon(AWeapon* WeaponToSwap);
 
 private:
 	/** Camera boom positioning the camera behind the character */
@@ -227,10 +238,23 @@ private:
 	/** Set this in Blueprints for the default Weapon class */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AWeapon> DefaultWeaponClass;
+
+	/** The item currently hit by our trace in TraceForItems (could be null) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	AItem* TraceHitItem;
+
+	/** Distance outward from the camera for the interp destination */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float CameraInterpDistance;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float CameraInterpElevation;
+
 	
 public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
@@ -242,5 +266,7 @@ public:
 	FORCEINLINE int8 GetOverlappedItemCount() const { return OverlappedItemCount; }
 
 	/** Adds/subtracts  to/form OverlappedItemCount and updates bShouldTraceForItems */
-	void IncrementOverlappedItemCount(int8 Amount); 
+	void IncrementOverlappedItemCount(int8 Amount);
+
+	FVector GetCameraInterpLocation();
 };
