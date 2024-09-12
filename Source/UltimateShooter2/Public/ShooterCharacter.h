@@ -244,10 +244,11 @@ private:
 	AItem* TraceHitItem;
 
 	/** Distance outward from the camera for the interp destination */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	float CameraInterpDistance;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	/** Distance upward from the camera for the interp destination */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	float CameraInterpElevation;
 
 	
@@ -270,5 +271,5 @@ public:
 
 	FVector GetCameraInterpLocation();
 
-	// void GetPickupItem(AItem* Item);
+	void GetPickupItem(AItem* Item);
 };

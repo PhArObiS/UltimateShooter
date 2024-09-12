@@ -539,8 +539,7 @@ void AShooterCharacter::SelectButtonPressed()
 {
 	if (TraceHitItem)
 	{
-		auto TraceHitWeapon = Cast<AWeapon>(TraceHitItem);
-		SwapWeapon(TraceHitWeapon);
+		TraceHitItem->StartItemCurve(this);
 	}
 }
 
@@ -586,14 +585,14 @@ FVector AShooterCharacter::GetCameraInterpLocation()
 	return CameraWorldLocation + CameraForward * CameraInterpDistance + FVector(0.f, 0.f, CameraInterpElevation);
 }
 
-// void AShooterCharacter::GetPickupItem(AItem* Item)
-// {
-// 	auto Weapon = Cast<AWeapon>(Item);
-// 	if (Weapon)
-// 	{
-// 		SwapWeapon(Weapon);
-// 	}
-// }
+void AShooterCharacter::GetPickupItem(AItem* Item)
+{
+	auto Weapon = Cast<AWeapon>(Item);
+	if (Weapon)
+	{
+		SwapWeapon(Weapon);
+	}
+}
 
 void AShooterCharacter::Tick(float DeltaTime) 
 {
