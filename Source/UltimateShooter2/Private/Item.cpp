@@ -345,12 +345,12 @@ void AItem::StartItemCurve(AShooterCharacter* Char)
 		&AItem::FinishInterping,
 		ZCurveTime);
 
-	// // Get initial Yaw of the Camera
+	// Get initial Yaw of the Camera
 	// const float CameraRotationYaw{ Character->GetFollowCamera()->GetComponentRotation().Yaw };
-	// // // Get initial Yaw of the Item
+	// Get initial Yaw of the Item
 	// const float ItemRotationYaw{ GetActorRotation().Yaw };
-	// // Initial Yaw offset between Camera and Item
+	// Initial Yaw offset between Camera and Item
 	// InterpInitialYawOffset = ItemRotationYaw - CameraRotationYaw;
-	//
-	// bCanChangeCustomDepth = false;
+	
+	bCanChangeCustomDepth = false;
 }

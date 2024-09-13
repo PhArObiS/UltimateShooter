@@ -55,7 +55,10 @@ AShooterCharacter::AShooterCharacter() :
 	OverlappedItemCount(0),
     // Camera interp location variables
 	CameraInterpDistance(250.f),
-	CameraInterpElevation(65.f)
+	CameraInterpElevation(65.f),
+// Starting ammo amounts
+	Starting9mmAmmo(85),
+	StartingARAmmo(120)
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -93,7 +96,8 @@ void AShooterCharacter::BeginPlay()
 	}
 	// Spawn the default weapon and equip it to the mesh
 	EquipWeapon(SpawnDefaultWeapon());
-	
+
+	InitializeAmmoMap();
 }
 
 void AShooterCharacter::MoveForward(float Value)
@@ -554,6 +558,12 @@ void AShooterCharacter::SwapWeapon(AWeapon* WeaponToSwap)
 	EquipWeapon(WeaponToSwap);
 	TraceHitItem = nullptr;
 	TraceHitItemLastFrame = nullptr;
+}
+
+void AShooterCharacter::InitializeAmmoMap()
+{
+	AmmoMap.Add(EAmmoType::EAT_9mm, Starting9mmAmmo);
+	AmmoMap.Add(EAmmoType::EAT_AR, StartingARAmmo);
 }
 
 float AShooterCharacter::GetCrosshairSpreadMultiplier() const

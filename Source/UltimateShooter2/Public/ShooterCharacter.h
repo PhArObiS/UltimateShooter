@@ -6,6 +6,15 @@
 #include "GameFramework/Character.h"
 #include "ShooterCharacter.generated.h"
 
+UENUM(BlueprintType)
+enum class EAmmoType : uint8
+{
+	EAT_9mm UMETA(DisplayName = "9mm"),
+	EAT_AR UMETA(DisplayName = "AssaultRifle"),
+
+	EAT_NAX UMETA(DisplayName = "DefaultMAX")
+};
+
 UCLASS()
 class ULTIMATESHOOTER2_API AShooterCharacter : public ACharacter
 {
@@ -99,6 +108,9 @@ protected:
 	
 	/** Drops current weapon */
 	void SwapWeapon(AWeapon* WeaponToSwap);
+
+	/** Drops current weapon */
+	void InitializeAmmoMap();
 
 private:
 	/** Camera boom positioning the camera behind the character */
@@ -251,6 +263,17 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	float CameraInterpElevation;
 
+	/** Map to keep track of Ammo types */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	TMap<EAmmoType, int32> AmmoMap;
+
+	/** Starting Ammo for 9mm */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Items, meta = (AllowPrivateAccess = "true"))
+	int32 Starting9mmAmmo;
+
+	/** Starting Ammo for AR */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Items, meta = (AllowPrivateAccess = "true"))
+	int32 StartingARAmmo;
 	
 public:
 	/** Returns CameraBoom subobject **/
