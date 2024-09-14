@@ -196,101 +196,101 @@ private:
 	/** Curve used to scale the item when interping */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
 	UCurveFloat* ItemScaleCurve;
-
-	/** Sound played when Item is picked up */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	class USoundCue* PickupSound;
-
-	/** Sound played when the Item is equipped */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	USoundCue* EquipSound;
-
-	/** Enum for the type of item this Item is */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	EItemType ItemType;
-
-	/** Index of the interp location this item is interping to */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	int32 InterpLocIndex;
-
-	/** Index for the material we'd like to change at runtime */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	int32 MaterialIndex;
-
-	/** Dynamic instance that we can change at runtime */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	UMaterialInstanceDynamic* DynamicMaterialInstance;
-
-	/** Material Instance used with the Dynamic Material Instance */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	UMaterialInstance* MaterialInstance;
-
-	bool bCanChangeCustomDepth;
-
-	/** Curve to drive the dynamic material parameters */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	class UCurveVector* PulseCurve;
-
-	/** Curve to drive the dynamic material parameters */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	UCurveVector* InterpPulseCurve;
-
-	FTimerHandle PulseTimer;
-
-	/** Time for the PulseTimer */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	float PulseCurveTime;
-
-	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	float GlowAmount;
-
-	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	float FresnelExponent;
-
-	UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	float FresnelReflectFraction;
-
-	/** Icon for this item in the inventory */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
-	UTexture2D* IconItem;
-
-	/** Ammo Icon for this item in the inventory */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
-	UTexture2D* AmmoItem;
-
-	/** Slot in the Inventory array */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
-	int32 SlotIndex;
-
-	/** True when the Character's inventory is full */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
-	bool bCharacterInventoryFull;
-
-	/** Item Rarity data table */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
-	class UDataTable* ItemRarityDataTable;
-
-	/** Color in the glow material */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
-	FLinearColor GlowColor;
-
-	/** Light color in the pickup widget */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
-	FLinearColor LightColor;
-
-	/** Dark color in the pickup widget */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
-	FLinearColor DarkColor;
-
-	/** Number of stars in the pickup widget */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
-	int32 NumberOfStars;
-
-	/** Backgroud icon for the inventory */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
-	UTexture2D* IconBackground;
-
-	FGuid ID;
+	//
+	// /** Sound played when Item is picked up */
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// class USoundCue* PickupSound;
+	//
+	// /** Sound played when the Item is equipped */
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// USoundCue* EquipSound;
+	//
+	// /** Enum for the type of item this Item is */
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// EItemType ItemType;
+	//
+	// /** Index of the interp location this item is interping to */
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// int32 InterpLocIndex;
+	//
+	// /** Index for the material we'd like to change at runtime */
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// int32 MaterialIndex;
+	//
+	// /** Dynamic instance that we can change at runtime */
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// UMaterialInstanceDynamic* DynamicMaterialInstance;
+	//
+	// /** Material Instance used with the Dynamic Material Instance */
+	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// UMaterialInstance* MaterialInstance;
+	//
+	// bool bCanChangeCustomDepth;
+	//
+	// /** Curve to drive the dynamic material parameters */
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// class UCurveVector* PulseCurve;
+	//
+	// /** Curve to drive the dynamic material parameters */
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// UCurveVector* InterpPulseCurve;
+	//
+	// FTimerHandle PulseTimer;
+	//
+	// /** Time for the PulseTimer */
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// float PulseCurveTime;
+	//
+	// UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// float GlowAmount;
+	//
+	// UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// float FresnelExponent;
+	//
+	// UPROPERTY(VisibleAnywhere, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	// float FresnelReflectFraction;
+	//
+	// /** Icon for this item in the inventory */
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	// UTexture2D* IconItem;
+	//
+	// /** Ammo Icon for this item in the inventory */
+	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	// UTexture2D* AmmoItem;
+	//
+	// /** Slot in the Inventory array */
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	// int32 SlotIndex;
+	//
+	// /** True when the Character's inventory is full */
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	// bool bCharacterInventoryFull;
+	//
+	// /** Item Rarity data table */
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
+	// class UDataTable* ItemRarityDataTable;
+	//
+	// /** Color in the glow material */
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	// FLinearColor GlowColor;
+	//
+	// /** Light color in the pickup widget */
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	// FLinearColor LightColor;
+	//
+	// /** Dark color in the pickup widget */
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	// FLinearColor DarkColor;
+	//
+	// /** Number of stars in the pickup widget */
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	// int32 NumberOfStars;
+	//
+	// /** Backgroud icon for the inventory */
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	// UTexture2D* IconBackground;
+	//
+	// FGuid ID;
 public:	
 	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickupWidget; }
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }

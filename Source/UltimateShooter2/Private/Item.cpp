@@ -352,5 +352,5 @@ void AItem::StartItemCurve(AShooterCharacter* Char)
 	// Initial Yaw offset between Camera and Item
 	// InterpInitialYawOffset = ItemRotationYaw - CameraRotationYaw;
 	
-	bCanChangeCustomDepth = false;
+	// bCanChangeCustomDepth = false;
 }
