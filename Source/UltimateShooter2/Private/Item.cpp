@@ -23,17 +23,6 @@ AItem::AItem() :
 	ItemInterpX(0.f),
 	ItemInterpY(0.f),
 	InterpInitialYawOffset(0.f)
-	// ItemType(EItemType::EIT_MAX),
-	// InterpLocIndex(0),
-	// MaterialIndex(0),
-	// bCanChangeCustomDepth(true),
-	// // Dynamic Material Parameters
-	// GlowAmount(150.f),
-	// FresnelExponent(3.f),
-	// FresnelReflectFraction(4.f),
-	// PulseCurveTime(5.f),
-	// SlotIndex(0),
-	// bCharacterInventoryFull(false)
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -234,18 +223,10 @@ void AItem::FinishInterping() // -------------
 	bInterping = false;
 	if (Character)
 	{
-		// Subtract 1 from the Item Count of the interp location struct
-		// Character->IncrementInterpLocItemCount(InterpLocIndex, -1);
 		Character->GetPickupItem(this);
-
-		// Character->UnHighlightInventorySlot();
 	}
 	// Set scale back to normal
 	SetActorScale3D(FVector(1.f));
-
-	// DisableGlowMaterial();
-	// bCanChangeCustomDepth = true;
-	// DisableCustomDepth();
 }
 
 void AItem::ItemInterp(float DeltaTime)
@@ -262,8 +243,7 @@ void AItem::ItemInterp(float DeltaTime)
 		// Get the item's initial location when the curve started
 		FVector ItemLocation = ItemInterpStartLocation;
 		// Get location in front of the camera
-		// const FVector CameraInterpLocation{ GetInterpLocation() };
-		const FVector CameraInterpLocation{ Character->GetCameraInterpLocation() };  // GetInterpLocation()
+		const FVector CameraInterpLocation{ Character->GetCameraInterpLocation() };
 
 		// Vector from Item to Camera Interp Location, X and Y are zeroed out
 		const FVector ItemToCamera{ FVector(0.f, 0.f, (CameraInterpLocation - ItemLocation).Z) };
