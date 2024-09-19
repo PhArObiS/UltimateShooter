@@ -29,7 +29,16 @@ enum class EItemState : uint8
 	EIS_Falling UMETA(DisplayName = "Falling"),
 
 	EIS_MAX UMETA(DisplayName = "DefaultMAX")
-};  
+};
+
+UENUM(BlueprintType)
+enum class EItemType : uint8
+{
+	EIT_Ammo UMETA(DisplayName = "Ammo"),
+	EIT_Weapon UMETA(DisplayName = "Weapon"),
+
+	EIT_MAX UMETA(DisplayName = "DefaultMAX")
+};
 
 UCLASS()
 class ULTIMATESHOOTER2_API AItem : public AActor
@@ -40,6 +49,9 @@ public:
 	AItem();
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+
+	// Called in AShooterCharacter::GetPickupItem
+	void PlayEquipSound();
 
 	// Called in AShooterCharacter::GetPickupItem
 	// void PlayEquipSound(bool bForcePlaySound = false);
@@ -77,6 +89,11 @@ protected:
 
 	/** Handles item interpolation when in the EquipInterping state */
 	void ItemInterp(float DeltaTime);
+
+	/** Get interp location based on the item type */
+	FVector GetInterpLocation();
+
+	void PlayPickupSound();
 
 private:
 	/** Skeletal Mesh for the item */
@@ -158,6 +175,14 @@ private:
 	/** Sound played when the Item is equipped */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
 	USoundCue* EquipSound;
+
+	/** Enum for the type of item this Item is */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	EItemType ItemType;
+
+	/** Index of the interp location this item is interping to */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
+	int32 InterpLocIndex;
 	
 public:	
 	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickupWidget; }
