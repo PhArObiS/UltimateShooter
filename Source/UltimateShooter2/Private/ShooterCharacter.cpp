@@ -29,13 +29,13 @@ AShooterCharacter::AShooterCharacter() :
 	// Mouse look sensitivity scale factors
 	MouseHipTurnRate(1.0f),
 	MouseHipLookUpRate(1.0f),
-	MouseAimingTurnRate(0.2f),
-	MouseAimingLookUpRate(0.2f),
+	MouseAimingTurnRate(0.6f),
+	MouseAimingLookUpRate(0.6f),
 	// True when aiming weapon
 	bAiming(false),
 	//  Camera field of view values
 	CameraDefaultFOV(0.f), // Default FOV set in BeginPlay
-	CameraZoomedFOV(35.f),  // FOV set when right mouse button is pressed
+	CameraZoomedFOV(25.f),  // FOV set when right mouse button is pressed
 	CameraCurrentFOV(0.f),
 	ZoomInterpSpeed(20.f),
 	// Crosshair spread factors
