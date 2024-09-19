@@ -150,6 +150,8 @@ protected:
 
 	void Aim();
 	void StopAiming();
+
+	void PickupAmmo(class AAmmo* Ammo);
 private:
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))

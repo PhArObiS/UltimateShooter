@@ -78,21 +78,6 @@ protected:
 	/** Handles item interpolation when in the EquipInterping state */
 	void ItemInterp(float DeltaTime);
 
-	// /** Get interp location based on the item type */
-	// FVector GetInterpLocation();
-	//
-	// void PlayPickupSound(bool bForcePlaySound = false);
-	//
-	// virtual void InitializeCustomDepth();
-	//
-	// virtual void OnConstruction(const FTransform& Transform) override;
-	//
-	// void EnableGlowMaterial();
-	//
-	// void UpdatePulse();
-	// void ResetPulseTimer();
-	// void StartPulseTimer();
-
 private:
 	/** Skeletal Mesh for the item */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
@@ -183,6 +168,7 @@ public:
 	FORCEINLINE USkeletalMeshComponent* GetItemMesh() const { return ItemMesh; }
 	FORCEINLINE USoundCue* GetPickupSound() const { return PickupSound; }
 	FORCEINLINE USoundCue* GetEquipSound() const { return EquipSound; }
+	FORCEINLINE int32 GetItemCount() const { return ItemCount; }
 
 	/** Called from the AShooterCharacter class */
 	void StartItemCurve(AShooterCharacter* Char);
