@@ -9,6 +9,7 @@
 
 AAmmo::AAmmo()
 {
+	// Construct the AmmoMesh component and set it as the root
 	AmmoMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AmmoMesh"));
 	SetRootComponent(AmmoMesh);
 
@@ -41,7 +42,7 @@ void AAmmo::SetItemProperties(EItemState State)
 	{
 	case EItemState::EIS_Pickup:
 		// Set mesh properties
-			AmmoMesh->SetSimulatePhysics(false);
+		AmmoMesh->SetSimulatePhysics(false);
 		AmmoMesh->SetEnableGravity(false);
 		AmmoMesh->SetVisibility(true);
 		AmmoMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
@@ -49,7 +50,7 @@ void AAmmo::SetItemProperties(EItemState State)
 		break;
 	case EItemState::EIS_Equipped:
 		// Set mesh properties
-			AmmoMesh->SetSimulatePhysics(false);
+		AmmoMesh->SetSimulatePhysics(false);
 		AmmoMesh->SetEnableGravity(false);
 		AmmoMesh->SetVisibility(true);
 		AmmoMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
@@ -57,7 +58,7 @@ void AAmmo::SetItemProperties(EItemState State)
 		break;
 	case EItemState::EIS_Falling:
 		// Set mesh properties
-			AmmoMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		AmmoMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		AmmoMesh->SetSimulatePhysics(true);
 		AmmoMesh->SetEnableGravity(true);
 		AmmoMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
@@ -67,7 +68,7 @@ void AAmmo::SetItemProperties(EItemState State)
 		break;
 	case EItemState::EIS_EquipInterping:
 		// Set mesh properties
-			AmmoMesh->SetSimulatePhysics(false);
+		AmmoMesh->SetSimulatePhysics(false);
 		AmmoMesh->SetEnableGravity(false);
 		AmmoMesh->SetVisibility(true);
 		AmmoMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
@@ -87,4 +88,14 @@ void AAmmo::AmmoSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* 
 			AmmoCollisionSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		}
 	}
+}
+
+void AAmmo::EnableCustomDepth()
+{
+	AmmoMesh->SetRenderCustomDepth(true);
+}
+
+void AAmmo::DisableCustomDepth()
+{
+	AmmoMesh->SetRenderCustomDepth(false);
 }

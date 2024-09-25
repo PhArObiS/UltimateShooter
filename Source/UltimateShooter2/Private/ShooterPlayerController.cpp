@@ -2,17 +2,17 @@
 
 
 #include "ShooterPlayerController.h"
-
 #include "Blueprint/UserWidget.h"
 
 AShooterPlayerController::AShooterPlayerController()
 {
-	
+
 }
 
 void AShooterPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
 	// Check our HUDOverlayClass TSubclassOf variable
 	if (HUDOverlayClass)
 	{

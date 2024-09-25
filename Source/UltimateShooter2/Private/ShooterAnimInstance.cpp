@@ -4,26 +4,32 @@
 #include "ShooterCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Weapon.h"
+#include "WeaponType.h"
+
 
 UShooterAnimInstance::UShooterAnimInstance() :
-       Speed(0.f),
-	   bIsInAir(false),
-	   bIsAccelerating(false),
-	   MovementOffsetYaw(0.f),
-	   LastMovementOffsetYaw(0.f),
-	   bAiming(false),
-	   TIPCharacterYaw(0.f),
-	   TIPCharacterYawLastFrame(0.f),
-	   RootYawOffset(0.f),
-	   Pitch(0.f),
-	   bReloading(false),
-	   OffsetState(EOffsetState::EOS_Hip),
-       CharacterRotation(FRotator(0.f)),
-	   CharacterRotationLastFrame(FRotator(0.f)),
-       YawDelta(0.f),
-	   RecoilWeight(1.0f),
-	   bTurningInPlace(false)
+	Speed(0.f),
+	bIsInAir(false),
+	bIsAccelerating(false),
+	MovementOffsetYaw(0.f),
+	LastMovementOffsetYaw(0.f),
+	bAiming(false),
+	CharacterRotation(FRotator(0.f)),
+	CharacterRotationLastFrame(FRotator(0.f)),
+	TIPCharacterYaw(0.f),
+	TIPCharacterYawLastFrame(0.f),
+	YawDelta(0.f),
+	RootYawOffset(0.f),
+	Pitch(0.f),
+	bReloading(false),
+	OffsetState(EOffsetState::EOS_Hip),
+	RecoilWeight(1.0f),
+	bTurningInPlace(false),
+	EquippedWeaponType(EWeaponType::EWT_MAX),
+	bShouldUseFABRIK(false)
 {
+
 }
 
 void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
@@ -36,6 +42,8 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 	{
 		bCrouching = ShooterCharacter->GetCrouching();
 		bReloading = ShooterCharacter->GetCombatState() == ECombatState::ECS_Reloading;
+		bEquipping = ShooterCharacter->GetCombatState() == ECombatState::ECS_Equipping;
+		bShouldUseFABRIK = ShooterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied || ShooterCharacter->GetCombatState() == ECombatState::ECS_FireTimerInProgress;
 
 		// Get the lateral speed of the character from velocity
 		FVector Velocity{ ShooterCharacter->GetVelocity() };
@@ -87,6 +95,11 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		{
 			OffsetState = EOffsetState::EOS_Hip;
 		}
+		// Check if ShooterCharacter has a valid EquippedWeapon
+		if (ShooterCharacter->GetEquippedWeapon())
+		{
+			EquippedWeaponType = ShooterCharacter->GetEquippedWeapon()->GetWeaponType();
+		}
 	}
 	TurnInPlace();
 	Lean(DeltaTime);
@@ -99,8 +112,7 @@ void UShooterAnimInstance::NativeInitializeAnimation()
 
 void UShooterAnimInstance::TurnInPlace()
 {
-	if (ShooterCharacter == nullptr)
-		return;
+	if (ShooterCharacter == nullptr) return;
 
 	Pitch = ShooterCharacter->GetBaseAimRotation().Pitch;
 
@@ -123,21 +135,21 @@ void UShooterAnimInstance::TurnInPlace()
 		RootYawOffset = UKismetMathLibrary::NormalizeAxis(RootYawOffset - TIPYawDelta);
 
 		// 1.0 if turning, 0.0 if not
-		const float Turning{GetCurveValue(TEXT("Turning"))};
+		const float Turning{ GetCurveValue(TEXT("Turning")) };
 		if (Turning > 0)
 		{
 			bTurningInPlace = true;
 			RotationCurveLastFrame = RotationCurve;
 			RotationCurve = GetCurveValue(TEXT("Rotation"));
-			const float DeltaRotation{RotationCurve - RotationCurveLastFrame};
+			const float DeltaRotation{ RotationCurve - RotationCurveLastFrame };
 
 			// RootYawOffset > 0, -> Turning Left. RootYawOffset < 0, -> Turning Right.
 			RootYawOffset > 0 ? RootYawOffset -= DeltaRotation : RootYawOffset += DeltaRotation;
 
-			const float ABSRootYawOffset{FMath::Abs(RootYawOffset)};
+			const float ABSRootYawOffset{ FMath::Abs(RootYawOffset) };
 			if (ABSRootYawOffset > 90.f)
 			{
-				const float YawExcess{ABSRootYawOffset - 90.f};
+				const float YawExcess{ ABSRootYawOffset - 90.f };
 				RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
 			}
 		}
@@ -150,7 +162,7 @@ void UShooterAnimInstance::TurnInPlace()
 	// Set the Recoil Weight
 	if (bTurningInPlace)
 	{
-		if (bReloading)
+		if (bReloading || bEquipping)
 		{
 			RecoilWeight = 1.f;
 		}
@@ -163,7 +175,7 @@ void UShooterAnimInstance::TurnInPlace()
 	{
 		if (bCrouching)
 		{
-			if (bReloading)
+			if (bReloading || bEquipping)
 			{
 				RecoilWeight = 1.f;
 			}
@@ -174,7 +186,7 @@ void UShooterAnimInstance::TurnInPlace()
 		}
 		else
 		{
-			if (bAiming || bReloading )
+			if (bAiming || bReloading || bEquipping)
 			{
 				RecoilWeight = 1.f;
 			}
@@ -188,21 +200,14 @@ void UShooterAnimInstance::TurnInPlace()
 
 void UShooterAnimInstance::Lean(float DeltaTime)
 {
-	if (ShooterCharacter == nullptr)
-		return;
+	if (ShooterCharacter == nullptr) return;
 	CharacterRotationLastFrame = CharacterRotation;
 	CharacterRotation = ShooterCharacter->GetActorRotation();
 
-	const FRotator Delta{UKismetMathLibrary::NormalizedDeltaRotator(CharacterRotation, CharacterRotationLastFrame)};
+	const FRotator Delta{ UKismetMathLibrary::NormalizedDeltaRotator(CharacterRotation, CharacterRotationLastFrame) };
 
-	const float Target = Delta.Yaw / DeltaTime ;
-	const float Interp{FMath::FInterpTo(YawDelta, Target, DeltaTime, 6.f)};
+	const float Target( Delta.Yaw / DeltaTime );
+	const float Interp{ FMath::FInterpTo(YawDelta, Target, DeltaTime, 6.f) };
 	YawDelta = FMath::Clamp(Interp, -90.f, 90.f);
 
-	if (GEngine) GEngine->AddOnScreenDebugMessage(
-		2,
-		-1,
-		FColor::Cyan,
-		FString::Printf(TEXT("YawDelta: %f"),
-			YawDelta));
-}      
+}
