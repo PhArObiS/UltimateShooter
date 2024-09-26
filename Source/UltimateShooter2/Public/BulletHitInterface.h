@@ -25,5 +25,5 @@ class ULTIMATESHOOTER2_API IBulletHitInterface
 public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable)
-	void BulletHit(FHitResult HitResult);
+	void BulletHit(FHitResult HitResult, AActor* Shooter, AController* ShooterController);
 };

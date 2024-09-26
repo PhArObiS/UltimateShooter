@@ -20,8 +20,9 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Shooter.h"
 #include "BulletHitInterface.h"
-
-
+#include "Enemy.h"
+// #include "EnemyController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 // Sets default values
 AShooterCharacter::AShooterCharacter() :
@@ -52,9 +53,6 @@ AShooterCharacter::AShooterCharacter() :
 	CrosshairInAirFactor(0.f),
 	CrosshairAimFactor(0.f),
 	CrosshairShootingFactor(0.f),
-	// Bullet fire timer variables
-	ShootTimeDuration(0.05f),
-	bFiringBullet(false),
 	// Automatic fire variables
 	bShouldFire(true),
 	bFireButtonPressed(false),
@@ -83,7 +81,14 @@ AShooterCharacter::AShooterCharacter() :
 	PickupSoundResetTime(0.2f),
 	EquipSoundResetTime(0.2f),
 	// Icon animation property
-	HighlightedSlot(-1)
+	HighlightedSlot(-1),
+	Health(100.f),
+	MaxHealth(100.f),
+	StunChance(.25f),
+	bDead(false),
+	// Bullet fire timer variables
+	ShootTimeDuration(0.05f),
+	bFiringBullet(false)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -137,7 +142,67 @@ AShooterCharacter::AShooterCharacter() :
 	InterpComp6->SetupAttachment(GetFollowCamera());
 }
 
-// Called when the game starts or when spawned
+// float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+// {
+// 	if (Health - DamageAmount <= 0.f)
+// 	{
+// 		Health = 0.f;
+// 		Die();
+//
+// 		auto EnemyController = Cast<AEnemyController>(EventInstigator);
+// 		if (EnemyController)
+// 		{
+// 			EnemyController->GetBlackboardComponent()->SetValueAsBool(
+// 				FName(TEXT("CharacterDead")),
+// 				true
+// 			);
+// 		}
+// 	}
+// 	else
+// 	{
+// 		Health -= DamageAmount;
+// 	}
+// 	return DamageAmount;
+// }
+
+void AShooterCharacter::Die()
+{
+	bDead = true;
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && DeathMontage)
+	{
+		AnimInstance->Montage_Play(DeathMontage);
+		AnimInstance->Montage_JumpToSection(FName("DeathA"), DeathMontage);
+	}
+}
+
+void AShooterCharacter::FinishDeath()
+{
+	GetMesh()->bPauseAnims = true;
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (PC)
+	{
+		DisableInput(PC);
+	}
+}
+
+void AShooterCharacter::StartCrosshairBulletFire()
+{
+	bFiringBullet = true;
+
+	GetWorldTimerManager().SetTimer(
+		CrosshairShootTimer,
+		this,
+		&AShooterCharacter::FinishCrosshairBulletFire,
+		ShootTimeDuration);
+}
+
+void AShooterCharacter::FinishCrosshairBulletFire()
+{
+	bFiringBullet = false;
+}
+
+	// Called when the game starts or when spawned
 void AShooterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -240,6 +305,8 @@ void AShooterCharacter::FireWeapon()
 		EquippedWeapon->DecrementAmmo();
 
 		StartFireTimer();
+		// Start bullet fire timer for crosshairs
+		StartCrosshairBulletFire();
 
 		if (EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol)
 		{
@@ -270,8 +337,7 @@ bool AShooterCharacter::GetBeamEndLocation(
 
 	// Perform a second trace, this time from the gun barrel
 	const FVector WeaponTraceStart{ MuzzleSocketLocation };
-	const FVector StartToEnd{ OutBeamLocation - WeaponTraceStart };
-	const FVector WeaponTraceEnd{ MuzzleSocketLocation + StartToEnd * 1.25f };
+	const FVector WeaponTraceEnd{ OutBeamLocation };
 	GetWorld()->LineTraceSingleByChannel(
 		OutHitResult,
 		WeaponTraceStart,
@@ -289,7 +355,7 @@ bool AShooterCharacter::GetBeamEndLocation(
 void AShooterCharacter::AimingButtonPressed()
 {
 	bAimingButtonPressed = true;
-	if (CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping)
+	if (CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping && CombatState != ECombatState::ECS_Stunned)
 	{
 		Aim();
 	}
@@ -410,28 +476,12 @@ void AShooterCharacter::CalculateCrosshairSpread(float DeltaTime)
 			60.f);
 	}
 
-	CrosshairSpreadMultiplier = 
-		0.5f + 
-		CrosshairVelocityFactor + 
+	CrosshairSpreadMultiplier =
+		0.5f +
+		CrosshairVelocityFactor +
 		CrosshairInAirFactor -
 		CrosshairAimFactor +
 		CrosshairShootingFactor;
-}
-
-void AShooterCharacter::StartCrosshairBulletFire()
-{
-	bFiringBullet = true;
-
-	GetWorldTimerManager().SetTimer(
-		CrosshairShootTimer, 
-		this, 
-		&AShooterCharacter::FinishCrosshairBulletFire, 
-		ShootTimeDuration);
-}
-
-void AShooterCharacter::FinishCrosshairBulletFire()
-{
-	bFiringBullet = false;
 }
 
 void AShooterCharacter::FireButtonPressed()
@@ -459,7 +509,10 @@ void AShooterCharacter::StartFireTimer()
 
 void AShooterCharacter::AutoFireReset()
 {
+	if (CombatState == ECombatState::ECS_Stunned) return;
+
 	CombatState = ECombatState::ECS_Unoccupied;
+	
 	if (EquippedWeapon == nullptr) return;
 	if (WeaponHasAmmo())
 	{
@@ -554,8 +607,13 @@ void AShooterCharacter::TraceForItems()
 
 			if (TraceHitItem && TraceHitItem->GetPickupWidget())
 			{
-				// Show Item's Pickup Widget
-				TraceHitItem->GetPickupWidget()->SetVisibility(true);
+				//
+				// if (ItemGuids.Contains(TraceHitItem->GetGuid()))
+				// {
+				// 	// Show Item's Pickup Widget
+				// 	TraceHitItem->GetPickupWidget()->SetVisibility(true);
+				// }
+
 				TraceHitItem->EnableCustomDepth();
 
 				if (Inventory.Num() >= INVENTORY_CAPACITY)
@@ -725,8 +783,40 @@ void AShooterCharacter::SendBullet()
 				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
 				if (BulletHitInterface)
 				{
-					BulletHitInterface->BulletHit_Implementation(BeamHitResult);
+					BulletHitInterface->BulletHit_Implementation(BeamHitResult, this, GetController());
 				}
+
+				AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
+				// if (HitEnemy)
+				// {
+				// 	int32 Damage{};
+				// 	if (BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone())
+				// 	{
+				// 		// Head shot
+				// 		Damage = EquippedWeapon->GetHeadShotDamage();
+				// 		UGameplayStatics::ApplyDamage(
+				// 			BeamHitResult.Actor.Get(),
+				// 			Damage,
+				// 			GetController(),
+				// 			this,
+				// 			UDamageType::StaticClass());
+				// 		HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, true);
+				// 	}
+				// 	else
+				// 	{
+				// 		// Body shot
+				// 		Damage = EquippedWeapon->GetDamage();
+				// 		UGameplayStatics::ApplyDamage(
+				// 			BeamHitResult.Actor.Get(),
+				// 			Damage,
+				// 			GetController(),
+				// 			this,
+				// 			UDamageType::StaticClass());
+				// 		HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, false);
+				// 	}
+				// 	
+				// 	
+				// }
 			}
 			else
 			{
@@ -739,6 +829,7 @@ void AShooterCharacter::SendBullet()
 						BeamHitResult.Location);
 				}
 			}
+
 
 			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
 				GetWorld(),
@@ -761,9 +852,6 @@ void AShooterCharacter::PlayGunfireMontage()
 		AnimInstance->Montage_Play(HipFireMontage);
 		AnimInstance->Montage_JumpToSection(FName("StartFire"));
 	}
-	
-	// Start bullet fire timer for crosshairs
-	StartCrosshairBulletFire();
 }
 
 void AShooterCharacter::ReloadButtonPressed()
@@ -1045,6 +1133,19 @@ void AShooterCharacter::UnHighlightInventorySlot()
 	HighlightedSlot = -1;
 }
 
+void AShooterCharacter::Stun()
+{
+	if (Health <= 0.f) return;
+
+	CombatState = ECombatState::ECS_Stunned;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && HitReactMontage)
+	{
+		AnimInstance->Montage_Play(HitReactMontage);
+	}
+}
+
 EPhysicalSurface AShooterCharacter::GetSurfaceType()
 {
 	FHitResult HitResult;
@@ -1060,6 +1161,16 @@ EPhysicalSurface AShooterCharacter::GetSurfaceType()
 		ECollisionChannel::ECC_Visibility,
 		QueryParams);
 	return UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
+}
+
+void AShooterCharacter::EndStun()
+{
+	CombatState = ECombatState::ECS_Unoccupied;
+
+	if (bAimingButtonPressed)
+	{
+		Aim();
+	}
 }
 
 int32 AShooterCharacter::GetInterpLocationIndex()
@@ -1149,6 +1260,8 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 void AShooterCharacter::FinishReloading()
 {
+	if (CombatState == ECombatState::ECS_Stunned) return;
+
 	// Update the Combat State
 	CombatState = ECombatState::ECS_Unoccupied;
 
@@ -1190,6 +1303,8 @@ void AShooterCharacter::FinishReloading()
 
 void AShooterCharacter::FinishEquipping()
 {
+	if (CombatState == ECombatState::ECS_Stunned) return;
+
 	CombatState = ECombatState::ECS_Unoccupied;
 	if (bAimingButtonPressed)
 	{
