@@ -79,13 +79,13 @@ struct FWeaponDataTable : public FTableRowBase
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	USoundCue* FireSound;
-	//
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	// FName BoneToHide;
-	//
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	// bool bAutomatic;
-	//
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName BoneToHide;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bAutomatic;
+	
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	// float Damage;
 	//
@@ -112,8 +112,8 @@ protected:
 
 	virtual void BeginPlay() override;
 
-	// void FinishMovingSlide();
-	// void UpdateSlideDisplacement();
+	void FinishMovingSlide();
+	void UpdateSlideDisplacement();
 
 private:
 	FTimerHandle ThrowWeaponTimer;
@@ -182,45 +182,45 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
 	USoundCue* FireSound;
 
-	// /** Name of the bone to hide on the weapon mesh */
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
-	// FName BoneToHide;
-	//
-	// /** Amount that the slide is pushed back during pistol fire */
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
-	// float SlideDisplacement;
-	//
-	// /** Curve for the slide displacement */
-	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
-	// UCurveFloat* SlideDisplacementCurve;
-	//
-	// /** Timer handle for updating SlideDisplacement */
-	// FTimerHandle SlideTimer;
-	//
-	// /** Time for displacing the slide during pistol fire */
-	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
-	// float SlideDisplacementTime;
-	//
-	// /** True when moving the pistol slide */
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
-	// bool bMovingSlide;
-	//
-	// /** Max distance for the slide on the pistol */
-	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
-	// float MaxSlideDisplacement;
-	//
-	// /** Max rotation for pistol recoil */
-	// UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
-	// float MaxRecoilRotation;
-	//
-	// /** Amount that the pistol will rotate during pistol fire*/
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
-	// float RecoilRotation;
-	//
+	/** Name of the bone to hide on the weapon mesh */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
+	FName BoneToHide;
+	
+	/** Amount that the slide is pushed back during pistol fire */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
+	float SlideDisplacement;
+	
+	/** Curve for the slide displacement */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
+	UCurveFloat* SlideDisplacementCurve;
+	
+	/** Timer handle for updating SlideDisplacement */
+	FTimerHandle SlideTimer;
+	
+	/** Time for displacing the slide during pistol fire */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
+	float SlideDisplacementTime;
+	
+	/** True when moving the pistol slide */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
+	bool bMovingSlide;
+	
+	/** Max distance for the slide on the pistol */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
+	float MaxSlideDisplacement;
+	
+	/** Max rotation for pistol recoil */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
+	float MaxRecoilRotation;
+	
+	/** Amount that the pistol will rotate during pistol fire*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowPrivateAccess = "true"))
+	float RecoilRotation;
+	
 	// /** True for auto gunfire */
-	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties", meta = (AllowPrivateAccess = "true"))
-	// bool bAutomatic;
-	//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties", meta = (AllowPrivateAccess = "true"))
+	bool bAutomatic;
+	
 	// /** Amount of damage caused by a bullet */
 	// UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Properties", meta = (AllowPrivateAccess = "true"))
 	// float Damage;
@@ -248,11 +248,11 @@ public:
 	FORCEINLINE float GetAutoFireRate() const { return AutoFireRate; }
 	FORCEINLINE UParticleSystem* GetMuzzleFlash() const { return MuzzleFlash; }
 	FORCEINLINE USoundCue* GetFireSound() const { return FireSound; }
-	// FORCEINLINE bool GetAutomatic() const { return bAutomatic; }
+	FORCEINLINE bool GetAutomatic() const { return bAutomatic; }
 	// FORCEINLINE float GetDamage() const { return Damage; }
 	// FORCEINLINE float GetHeadShotDamage() const { return HeadShotDamage; }
 
-	// void StartSlideTimer();
+	void StartSlideTimer();
 
 	void ReloadAmmo(int32 Amount);
 

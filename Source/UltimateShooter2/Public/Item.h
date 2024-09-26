@@ -58,7 +58,7 @@ struct FItemRarityTable : public FTableRowBase
 	int32 NumberOfStars;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UTexture2D *IconBackground;
+	UTexture2D* IconBackground;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 CustomDepthStencil;

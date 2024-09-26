@@ -235,6 +235,12 @@ void AShooterCharacter::FireWeapon()
 		EquippedWeapon->DecrementAmmo();
 
 		StartFireTimer();
+
+		if (EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol)
+		{
+			// Start moving slide timer
+			EquippedWeapon->StartSlideTimer();
+		}
 	}
 }
 
@@ -278,7 +284,7 @@ bool AShooterCharacter::GetBeamEndLocation(
 void AShooterCharacter::AimingButtonPressed()
 {
 	bAimingButtonPressed = true;
-	if (CombatState != ECombatState::ECS_Reloading)
+	if (CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping)
 	{
 		Aim();
 	}
@@ -449,10 +455,10 @@ void AShooterCharacter::StartFireTimer()
 void AShooterCharacter::AutoFireReset()
 {
 	CombatState = ECombatState::ECS_Unoccupied;
-
+	if (EquippedWeapon == nullptr) return;
 	if (WeaponHasAmmo())
 	{
-		if (bFireButtonPressed)
+		if (bFireButtonPressed && EquippedWeapon->GetAutomatic())
 		{
 			FireWeapon();
 		}
@@ -528,7 +534,7 @@ void AShooterCharacter::TraceForItems()
 			}
 			else
 			{
-				// Is a slot being highlight?
+				// Is a slot being highlighted?
 				if (HighlightedSlot != -1)
 				{
 					// UnHighlight the slot
@@ -653,7 +659,6 @@ void AShooterCharacter::SelectButtonReleased()
 
 void AShooterCharacter::SwapWeapon(AWeapon* WeaponToSwap)
 {
-
 	if (Inventory.Num() - 1 >= EquippedWeapon->GetSlotIndex())
 	{
 		Inventory[EquippedWeapon->GetSlotIndex()] = WeaponToSwap;
@@ -969,6 +974,11 @@ void AShooterCharacter::ExchangeInventoryItems(int32 CurrentItemIndex, int32 New
 
 	if (bCanExchangeItems)
 	{
+		if (bAiming)
+		{
+			StopAiming();
+		}
+
 		auto OldEquippedWeapon = EquippedWeapon;
 		auto NewWeapon = Cast<AWeapon>(Inventory[NewItemIndex]);
 		EquipWeapon(NewWeapon);
@@ -1146,6 +1156,11 @@ void AShooterCharacter::FinishReloading()
 void AShooterCharacter::FinishEquipping()
 {
 	CombatState = ECombatState::ECS_Unoccupied;
+	if (bAimingButtonPressed)
+	{
+
+		Aim();
+	}
 }
 
 void AShooterCharacter::ResetPickupSoundTimer()
