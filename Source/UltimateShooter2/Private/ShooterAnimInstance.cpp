@@ -7,7 +7,6 @@
 #include "Weapon.h"
 #include "WeaponType.h"
 
-
 UShooterAnimInstance::UShooterAnimInstance() :
 	Speed(0.f),
 	bIsInAir(false),
@@ -206,7 +205,7 @@ void UShooterAnimInstance::Lean(float DeltaTime)
 
 	const FRotator Delta{ UKismetMathLibrary::NormalizedDeltaRotator(CharacterRotation, CharacterRotationLastFrame) };
 
-	const float Target( Delta.Yaw / DeltaTime );
+	const float Target = Delta.Yaw / DeltaTime;
 	const float Interp{ FMath::FInterpTo(YawDelta, Target, DeltaTime, 6.f) };
 	YawDelta = FMath::Clamp(Interp, -90.f, 90.f);
 

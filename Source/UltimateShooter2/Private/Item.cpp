@@ -370,6 +370,12 @@ void AItem::InitializeCustomDepth()
 
 void AItem::OnConstruction(const FTransform& Transform)
 {
+	if (MaterialInstance)
+	{
+		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, this);
+		ItemMesh->SetMaterial(MaterialIndex, DynamicMaterialInstance);
+	}
+	EnableGlowMaterial();
 
 	// Load the data in the Item Rarity Data Table
 
@@ -405,22 +411,7 @@ void AItem::OnConstruction(const FTransform& Transform)
 			DarkColor = RarityRow->DarkColor;
 			NumberOfStars = RarityRow->NumberOfStars;
 			IconBackground = RarityRow->IconBackground;
-			if (GetItemMesh())
-			{
-				GetItemMesh()->SetCustomDepthStencilValue(RarityRow->CustomDepthStencil);
-			}
 		}
-	}
-
-	
-	if (MaterialInstance)
-	{
-		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, this);
-		DynamicMaterialInstance->SetVectorParameterValue(TEXT("FresnelColor"), GlowColor);
-		ItemMesh->SetMaterial(MaterialIndex, DynamicMaterialInstance);
-
-		EnableGlowMaterial();
-
 	}
 }
 
@@ -545,9 +536,9 @@ void AItem::StartItemCurve(AShooterCharacter* Char, bool bForcePlaySound)
 		ZCurveTime);
 
 	// Get initial Yaw of the Camera
-	const float CameraRotationYaw( Character->GetFollowCamera()->GetComponentRotation().Yaw );
+	const float CameraRotationYaw = Character->GetFollowCamera()->GetComponentRotation().Yaw;
 	// Get initial Yaw of the Item
-	const float ItemRotationYaw( GetActorRotation().Yaw );
+	const float ItemRotationYaw = GetActorRotation().Yaw;
 	// Initial Yaw offset between Camera and Item
 	InterpInitialYawOffset = ItemRotationYaw - CameraRotationYaw;
 

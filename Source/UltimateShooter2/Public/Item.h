@@ -80,19 +80,19 @@ protected:
 	/** Called when overlapping AreaSphere */
 	UFUNCTION()
 	void OnSphereOverlap(
-		UPrimitiveComponent *OverlappedComponent,
-		AActor *OtherActor,
-		UPrimitiveComponent *OtherComp,
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex,
 		bool bFromSweep,
-		const FHitResult &SweepResult);
+		const FHitResult& SweepResult);
 
 	/** Called when End Overlapping AreaSphere */
 	UFUNCTION()
 	void OnSphereEndOverlap(
-		UPrimitiveComponent *OverlappedComponent,
-		AActor *OtherActor,
-		UPrimitiveComponent *OtherComp,
+		UPrimitiveComponent* OverlappedComponent,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
 
 	/** Sets the ActiveStars array of bools based on rarity */
@@ -114,7 +114,7 @@ protected:
 
 	virtual void InitializeCustomDepth();
 
-	virtual void OnConstruction(const FTransform &Transform) override;
+	virtual void OnConstruction(const FTransform& Transform) override;
 
 	void EnableGlowMaterial();
 
@@ -132,19 +132,19 @@ public:
 private:
 	/** Skeletal Mesh for the item */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	USkeletalMeshComponent *ItemMesh;
+	USkeletalMeshComponent* ItemMesh;
 
 	/** Line trace collides with box to show HUD widgets */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	class UBoxComponent *CollisionBox;
+	class UBoxComponent* CollisionBox;
 
 	/** Popup widget for when the player looks at the item */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	class UWidgetComponent *PickupWidget;
+	class UWidgetComponent* PickupWidget;
 
 	/** Enables item tracing when overlapped */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	class USphereComponent *AreaSphere;
+	class USphereComponent* AreaSphere;
 
 	/** The name which appears on the Pickup Widget */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
@@ -167,7 +167,7 @@ private:
 
 	/** The curve asset to use for the item's Z location when interping */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	class UCurveFloat *ItemZCurve;
+	class UCurveFloat* ItemZCurve;
 
 	/** Starting location when interping begins */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
@@ -187,7 +187,7 @@ private:
 
 	/** Pointer to the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	class AShooterCharacter *Character;
+	class AShooterCharacter* Character;
 
 	/** X and Y for the Item while interping in the EquipInterping state */
 	float ItemInterpX;
@@ -198,15 +198,15 @@ private:
 
 	/** Curve used to scale the item when interping */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	UCurveFloat *ItemScaleCurve;
+	UCurveFloat* ItemScaleCurve;
 
 	/** Sound played when Item is picked up */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	class USoundCue *PickupSound;
+	class USoundCue* PickupSound;
 
 	/** Sound played when the Item is equipped */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	USoundCue *EquipSound;
+	USoundCue* EquipSound;
 
 	/** Enum for the type of item this Item is */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
@@ -222,21 +222,21 @@ private:
 
 	/** Dynamic instance that we can change at runtime */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	UMaterialInstanceDynamic *DynamicMaterialInstance;
+	UMaterialInstanceDynamic* DynamicMaterialInstance;
 
 	/** Material Instance used with the Dynamic Material Instance */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	UMaterialInstance *MaterialInstance;
+	UMaterialInstance* MaterialInstance;
 
 	bool bCanChangeCustomDepth;
 
 	/** Curve to drive the dynamic material parameters */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	class UCurveVector *PulseCurve;
+	class UCurveVector* PulseCurve;
 
 	/** Curve to drive the dynamic material parameters */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item Properties", meta = (AllowPrivateAccess = "true"))
-	UCurveVector *InterpPulseCurve;
+	UCurveVector* InterpPulseCurve;
 
 	FTimerHandle PulseTimer;
 
@@ -255,11 +255,11 @@ private:
 
 	/** Icon for this item in the inventory */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
-	UTexture2D *IconItem;
+	UTexture2D* IconItem;
 
 	/** Ammo Icon for this item in the inventory */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
-	UTexture2D *AmmoItem;
+	UTexture2D* AmmoItem;
 
 	/** Slot in the Inventory array */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
@@ -271,7 +271,7 @@ private:
 
 	/** Item Rarity data table */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
-	class UDataTable *ItemRarityDataTable;
+	class UDataTable* ItemRarityDataTable;
 
 	/** Color in the glow material */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
@@ -291,12 +291,9 @@ private:
 
 	/** Backgroud icon for the inventory */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
-	UTexture2D *IconBackground;
-
-	// FGuid ID;
+	UTexture2D* IconBackground;
 
 public:
-	// FORCEINLINE FGuid GetGuid() const { return ID; }
 	FORCEINLINE UWidgetComponent *GetPickupWidget() const { return PickupWidget; }
 	FORCEINLINE USphereComponent *GetAreaSphere() const { return AreaSphere; }
 	FORCEINLINE UBoxComponent *GetCollisionBox() const { return CollisionBox; }
@@ -331,7 +328,4 @@ public:
 	virtual void EnableCustomDepth();
 	virtual void DisableCustomDepth();
 	void DisableGlowMaterial();
-
-	
 };
-
