@@ -7,6 +7,7 @@
 #include "Weapon.h"
 #include "WeaponType.h"
 
+
 UShooterAnimInstance::UShooterAnimInstance() :
 	Speed(0.f),
 	bIsInAir(false),
@@ -14,12 +15,13 @@ UShooterAnimInstance::UShooterAnimInstance() :
 	MovementOffsetYaw(0.f),
 	LastMovementOffsetYaw(0.f),
 	bAiming(false),
-	CharacterRotation(FRotator(0.f)),
-	CharacterRotationLastFrame(FRotator(0.f)),
 	TIPCharacterYaw(0.f),
 	TIPCharacterYawLastFrame(0.f),
-	YawDelta(0.f),
 	RootYawOffset(0.f),
+	CharacterRotation(FRotator(0.f)),
+	CharacterRotationLastFrame(FRotator(0.f)),
+	
+	YawDelta(0.f),
 	Pitch(0.f),
 	bReloading(false),
 	OffsetState(EOffsetState::EOS_Hip),

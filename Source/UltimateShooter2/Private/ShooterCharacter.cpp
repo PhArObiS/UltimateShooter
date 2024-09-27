@@ -18,10 +18,10 @@
 #include "Components/CapsuleComponent.h"
 #include "Ammo.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "Shooter.h"
+#include "UltimateShooter2/UltimateShooter2.h"
 #include "BulletHitInterface.h"
 #include "Enemy.h"
-// #include "EnemyController.h"
+#include "EnemyController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 
 // Sets default values
@@ -142,28 +142,28 @@ AShooterCharacter::AShooterCharacter() :
 	InterpComp6->SetupAttachment(GetFollowCamera());
 }
 
-// float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-// {
-// 	if (Health - DamageAmount <= 0.f)
-// 	{
-// 		Health = 0.f;
-// 		Die();
-//
-// 		auto EnemyController = Cast<AEnemyController>(EventInstigator);
-// 		if (EnemyController)
-// 		{
-// 			EnemyController->GetBlackboardComponent()->SetValueAsBool(
-// 				FName(TEXT("CharacterDead")),
-// 				true
-// 			);
-// 		}
-// 	}
-// 	else
-// 	{
-// 		Health -= DamageAmount;
-// 	}
-// 	return DamageAmount;
-// }
+float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (Health - DamageAmount <= 0.f)
+	{
+		Health = 0.f;
+		Die();
+
+		auto EnemyController = Cast<AEnemyController>(EventInstigator);
+		if (EnemyController)
+		{
+			EnemyController->GetBlackboardComponent()->SetValueAsBool(
+				FName(TEXT("CharacterDead")),
+				true
+			);
+		}
+	}
+	else
+	{
+		Health -= DamageAmount;
+	}
+	return DamageAmount;
+}
 
 void AShooterCharacter::Die()
 {
@@ -321,36 +321,68 @@ bool AShooterCharacter::GetBeamEndLocation(
 	FHitResult& OutHitResult)
 {
 	FVector OutBeamLocation;
+	// Log muzzle location
+	UE_LOG(LogTemp, Warning, TEXT("Muzzle Location: %s"), *MuzzleSocketLocation.ToString());
+
 	// Check for crosshair trace hit
 	FHitResult CrosshairHitResult;
 	bool bCrosshairHit = TraceUnderCrosshairs(CrosshairHitResult, OutBeamLocation);
 
 	if (bCrosshairHit)
 	{
-		// Tentative beam location - still need to trace from gun
+		// Tentative beam location if crosshair hits something
 		OutBeamLocation = CrosshairHitResult.Location;
+		UE_LOG(LogTemp, Warning, TEXT("Crosshair hit at: %s"), *OutBeamLocation.ToString());
 	}
-	else // no crosshair trace hit
+	else
 	{
-		// OutBeamLocation is the End location for the line trace
+		// Default beam location if crosshair doesn't hit
+		OutBeamLocation = MuzzleSocketLocation + (GetControlRotation().Vector() * 50000.0f);
+		UE_LOG(LogTemp, Warning, TEXT("No crosshair hit. Setting default beam end location to: %s"), *OutBeamLocation.ToString());
 	}
 
-	// Perform a second trace, this time from the gun barrel
+	
+
+	// Perform a second trace, this time from the gun barrel to the beam location
 	const FVector WeaponTraceStart{ MuzzleSocketLocation };
 	const FVector WeaponTraceEnd{ OutBeamLocation };
+
+	UE_LOG(LogTemp, Warning, TEXT("Weapon Trace Start: %s, End: %s"), *WeaponTraceStart.ToString(), *WeaponTraceEnd.ToString());
+
+	// Perform line trace
 	GetWorld()->LineTraceSingleByChannel(
 		OutHitResult,
 		WeaponTraceStart,
 		WeaponTraceEnd,
 		ECollisionChannel::ECC_Visibility);
-	if (!OutHitResult.bBlockingHit) // object between barrel and BeamEndPoint?
+
+	// Draw debug line for the trace
+	DrawDebugLine(GetWorld(), WeaponTraceStart, WeaponTraceEnd, FColor::Green, false, 2.0f, 0, 2.0f);
+
+	if (!OutHitResult.bBlockingHit) 
 	{
 		OutHitResult.Location = OutBeamLocation;
 		return false;
 	}
 
+	if (OutHitResult.GetActor())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OutHitResult.GetActor()->GetName());
+	}
+
+	// Check if the trace hit anything
+	if (!OutHitResult.bBlockingHit)
+	{
+		OutHitResult.Location = OutBeamLocation;
+		UE_LOG(LogTemp, Warning, TEXT("No blocking hit. Beam end location: %s"), *OutBeamLocation.ToString());
+		return false;
+	}
+
+	// Log the hit result if we hit something
+	UE_LOG(LogTemp, Warning, TEXT("Blocking hit at: %s"), *OutHitResult.Location.ToString());
 	return true;
 }
+
 
 void AShooterCharacter::AimingButtonPressed()
 {
@@ -607,12 +639,12 @@ void AShooterCharacter::TraceForItems()
 
 			if (TraceHitItem && TraceHitItem->GetPickupWidget())
 			{
-				//
-				// if (ItemGuids.Contains(TraceHitItem->GetGuid()))
-				// {
-				// 	// Show Item's Pickup Widget
-				// 	TraceHitItem->GetPickupWidget()->SetVisibility(true);
-				// }
+
+				if (ItemGuids.Contains(TraceHitItem->GetGuid()))
+				{
+					// Show Item's Pickup Widget
+					TraceHitItem->GetPickupWidget()->SetVisibility(true);
+				}
 
 				TraceHitItem->EnableCustomDepth();
 
@@ -759,89 +791,133 @@ void AShooterCharacter::PlayFireSound()
 
 void AShooterCharacter::SendBullet()
 {
-	// Send bullet
-	const USkeletalMeshSocket* BarrelSocket =
-		EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
-	if (BarrelSocket)
-	{
-		const FTransform SocketTransform = BarrelSocket->GetSocketTransform(
-			EquippedWeapon->GetItemMesh());
+    // Send bullet
+    const USkeletalMeshSocket* BarrelSocket = 
+        EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
+    if (BarrelSocket)
+    {
+        // Get the socket transform for the weapon's barrel
+        const FTransform SocketTransform = BarrelSocket->GetSocketTransform(
+            EquippedWeapon->GetItemMesh());
 
-		if (EquippedWeapon->GetMuzzleFlash())
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), SocketTransform);
-		}
+        // Log the socket transform information
+        UE_LOG(LogTemp, Warning, TEXT("Socket Transform: Location: %s, Rotation: %s"),
+            *SocketTransform.GetLocation().ToString(),
+            *SocketTransform.GetRotation().Rotator().ToString());
 
-		FHitResult BeamHitResult;
-		bool bBeamEnd = GetBeamEndLocation(
-			SocketTransform.GetLocation(), BeamHitResult);
-		if (bBeamEnd)
-		{
-			// Does hit Actor implement BulletHitInterface?
-			if (BeamHitResult.GetActor())
-			{
-				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
-				if (BulletHitInterface)
-				{
-					BulletHitInterface->BulletHit_Implementation(BeamHitResult, this, GetController());
-				}
+        // Check for the muzzle flash and spawn it if valid
+        if (EquippedWeapon->GetMuzzleFlash())
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Muzzle flash exists."));
+            UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), SocketTransform);
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("Muzzle flash is missing!"));
+        }
 
-				AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
-				// if (HitEnemy)
-				// {
-				// 	int32 Damage{};
-				// 	if (BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone())
-				// 	{
-				// 		// Head shot
-				// 		Damage = EquippedWeapon->GetHeadShotDamage();
-				// 		UGameplayStatics::ApplyDamage(
-				// 			BeamHitResult.Actor.Get(),
-				// 			Damage,
-				// 			GetController(),
-				// 			this,
-				// 			UDamageType::StaticClass());
-				// 		HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, true);
-				// 	}
-				// 	else
-				// 	{
-				// 		// Body shot
-				// 		Damage = EquippedWeapon->GetDamage();
-				// 		UGameplayStatics::ApplyDamage(
-				// 			BeamHitResult.Actor.Get(),
-				// 			Damage,
-				// 			GetController(),
-				// 			this,
-				// 			UDamageType::StaticClass());
-				// 		HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, false);
-				// 	}
-				// 	
-				// 	
-				// }
-			}
-			else
-			{
-				// Spawn default particles
-				if (ImpactParticles)
-				{
-					UGameplayStatics::SpawnEmitterAtLocation(
-						GetWorld(),
-						ImpactParticles,
-						BeamHitResult.Location);
-				}
-			}
+        // Hit result to store beam hit location
+        FHitResult BeamHitResult;
+        bool bBeamEnd = GetBeamEndLocation(
+            SocketTransform.GetLocation(), BeamHitResult);
+        
+        // Check if beam end location is valid
+        if (bBeamEnd)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Beam end location valid at: %s"), *BeamHitResult.Location.ToString());
 
+            // Check if we hit an actor
+            if (BeamHitResult.GetActor())
+            {
+                // Log the hit actor's name
+                UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *BeamHitResult.GetActor()->GetName());
 
-			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
-				GetWorld(),
-				BeamParticles,
-				SocketTransform);
-			if (Beam)
-			{
-				Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
-			}
-		}
-	}
+                // Check if the actor implements the BulletHitInterface
+                IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
+                if (BulletHitInterface)
+                {
+                    BulletHitInterface->BulletHit_Implementation(BeamHitResult, this, GetController());
+                    UE_LOG(LogTemp, Warning, TEXT("Bullet hit interface implemented on Actor: %s"), *BeamHitResult.GetActor()->GetName());
+                }
+
+                // Check if we hit an enemy
+                AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
+                if (HitEnemy)
+                {
+                    int32 Damage{};
+                    if (BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone())
+                    {
+                        // Log headshot detection
+                        UE_LOG(LogTemp, Warning, TEXT("Headshot detected on: %s"), *HitEnemy->GetName());
+                        Damage = EquippedWeapon->GetHeadShotDamage();
+                        UGameplayStatics::ApplyDamage(
+                            BeamHitResult.GetActor(),
+                            Damage,
+                            GetController(),
+                            this,
+                            UDamageType::StaticClass());
+                        HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, true);
+                    }
+                    else
+                    {
+                        // Log body shot detection
+                        UE_LOG(LogTemp, Warning, TEXT("Body shot detected on: %s"), *HitEnemy->GetName());
+                        Damage = EquippedWeapon->GetDamage();
+                        UGameplayStatics::ApplyDamage(
+                            BeamHitResult.GetActor(),
+                            Damage,
+                            GetController(),
+                            this,
+                            UDamageType::StaticClass());
+                        HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, false);
+                    }
+                }
+            }
+            else
+            {
+                UE_LOG(LogTemp, Warning, TEXT("No actor hit, spawning default impact particles."));
+                // Spawn default particles if no actor is hit
+                if (ImpactParticles)
+                {
+                    UGameplayStatics::SpawnEmitterAtLocation(
+                        GetWorld(),
+                        ImpactParticles,
+                        BeamHitResult.Location);
+                }
+                else
+                {
+                    UE_LOG(LogTemp, Error, TEXT("Impact particles missing!"));
+                }
+            }
+
+            // Log beam particle spawning
+            UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
+                GetWorld(),
+                BeamParticles,
+                SocketTransform);
+            if (Beam)
+            {
+                UE_LOG(LogTemp, Warning, TEXT("Smoke trail/beam spawned."));
+                Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
+            }
+            else
+            {
+                UE_LOG(LogTemp, Error, TEXT("Failed to spawn smoke trail/beam."));
+            }
+        }
+        else
+        {
+            UE_LOG(LogTemp, Error, TEXT("No beam end location found!"));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("Barrel socket not found!"));
+    }
 }
+
+
+
 
 void AShooterCharacter::PlayGunfireMontage()
 {
@@ -1327,17 +1403,28 @@ float AShooterCharacter::GetCrosshairSpreadMultiplier() const
 	return CrosshairSpreadMultiplier;
 }
 
-void AShooterCharacter::IncrementOverlappedItemCount(int8 Amount)
+void AShooterCharacter::IncrementOverlappedItemCount(int8 Amount, FGuid ID)
 {
 	if (OverlappedItemCount + Amount <= 0)
 	{
 		OverlappedItemCount = 0;
 		bShouldTraceForItems = false;
+
+		ItemGuids.Empty();
 	}
 	else
 	{
 		OverlappedItemCount += Amount;
 		bShouldTraceForItems = true;
+
+		if (Amount > 0)
+		{
+			ItemGuids.Add(ID);
+		}
+		else
+		{
+			ItemGuids.Remove(ID);
+		}
 	}
 }
 

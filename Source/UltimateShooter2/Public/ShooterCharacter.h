@@ -47,11 +47,11 @@ public:
 	AShooterCharacter();
 
 	// Take combat damage
-	// virtual float TakeDamage(
-	// 	float DamageAmount,
-	// 	struct FDamageEvent const& DamageEvent,
-	// 	class AController* EventInstigator,
-	// 	AActor* DamageCauser) override;
+	virtual float TakeDamage(
+		float DamageAmount,
+		struct FDamageEvent const& DamageEvent,
+		class AController* EventInstigator,
+		AActor* DamageCauser) override;
 
 protected:
 	// Called when the game starts or when spawned
@@ -533,7 +533,7 @@ public:
 	FORCEINLINE int8 GetOverlappedItemCount() const { return OverlappedItemCount; }
 
 	/** Adds/subtracts to/from OverlappedItemCount and updates bShouldTraceForItems */
-	void IncrementOverlappedItemCount(int8 Amount);
+	void IncrementOverlappedItemCount(int8 Amount, FGuid ID);
 
 	// No longer needed; AItem has GetInterpLocation
 	//FVector GetCameraInterpLocation();

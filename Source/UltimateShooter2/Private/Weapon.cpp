@@ -19,7 +19,7 @@ AWeapon::AWeapon() :
 	MaxRecoilRotation(20.f),
 	bAutomatic(true)
 {
-	PrimaryActorTick.bCanEverTick = true;
+
 }
 
 void AWeapon::Tick(float DeltaTime)
@@ -71,7 +71,7 @@ void AWeapon::StopFalling()
 void AWeapon::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
-	const FString WeaponTablePath{ TEXT("DataTable'/Game/_Game/DataTable/WeaponData.WeaponDataTable'") };
+	const FString WeaponTablePath{ TEXT("/Script/Engine.DataTable'/Game/_Game/DataTable/WeaponData.WeaponData'") };
 	UDataTable* WeaponTableObject = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, *WeaponTablePath));
 
 	if (WeaponTableObject)
@@ -119,6 +119,8 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 			FireSound = WeaponDataRow->FireSound;
 			BoneToHide = WeaponDataRow->BoneToHide;
 			bAutomatic = WeaponDataRow->bAutomatic;
+			Damage = WeaponDataRow->Damage;
+			HeadShotDamage = WeaponDataRow->HeadShotDamage;
 		}
 
 		if (GetMaterialInstance())
@@ -126,7 +128,7 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 			SetDynamicMaterialInstance(UMaterialInstanceDynamic::Create(GetMaterialInstance(), this));
 			GetDynamicMaterialInstance()->SetVectorParameterValue(TEXT("FresnelColor"), GetGlowColor());
 			GetItemMesh()->SetMaterial(GetMaterialIndex(), GetDynamicMaterialInstance());
-		
+
 			EnableGlowMaterial();
 		}
 

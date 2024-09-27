@@ -130,4 +130,3 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	bool bShouldUseFABRIK;
 };
-
