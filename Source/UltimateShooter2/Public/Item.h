@@ -34,6 +34,7 @@ enum class EItemState : uint8
 UENUM(BlueprintType)
 enum class EItemType : uint8
 {
+	EIT_None UMETA(DisplayName = "None"),
 	EIT_Ammo UMETA(DisplayName = "Ammo"),
 	EIT_Weapon UMETA(DisplayName = "Weapon"),
 

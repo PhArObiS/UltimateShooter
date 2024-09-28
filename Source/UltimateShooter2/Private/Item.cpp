@@ -1,5 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+
 #include "Item.h"
 #include "Components/BoxComponent.h"
 #include "Components/WidgetComponent.h"
@@ -11,29 +12,30 @@
 #include "Curves/CurveVector.h"
 
 // Sets default values
-AItem::AItem() : ItemName(FString("Default")),
-				 ItemCount(0),
-				 ItemRarity(EItemRarity::EIR_Common),
-				 ItemState(EItemState::EIS_Pickup),
-				 // Item interp variables
-				 ZCurveTime(0.7f),
-				 ItemInterpStartLocation(FVector(0.f)),
-				 CameraTargetLocation(FVector(0.f)),
-				 bInterping(false),
-				 ItemInterpX(0.f),
-				 ItemInterpY(0.f),
-				 InterpInitialYawOffset(0.f),
-				 ItemType(EItemType::EIT_MAX),
-				 InterpLocIndex(0),
-				 MaterialIndex(0),
-				 bCanChangeCustomDepth(true),
-				 // Dynamic Material Parameters
-				 GlowAmount(150.f),
-				 FresnelExponent(3.f),
-				 FresnelReflectFraction(4.f),
-				 PulseCurveTime(5.f),
-				 SlotIndex(0),
-				 bCharacterInventoryFull(false)
+AItem::AItem() :
+	ItemName(FString("Default")),
+	ItemCount(0),
+	ItemRarity(EItemRarity::EIR_Common),
+	ItemState(EItemState::EIS_Pickup),
+	// Item interp variables
+	ZCurveTime(0.7f),
+	ItemInterpStartLocation(FVector(0.f)),
+	CameraTargetLocation(FVector(0.f)),
+	bInterping(false),
+	ItemInterpX(0.f),
+	ItemInterpY(0.f),
+	InterpInitialYawOffset(0.f),
+	ItemType(EItemType::EIT_None),
+	InterpLocIndex(0),
+	MaterialIndex(0),
+	bCanChangeCustomDepth(true),
+	// Dynamic Material Parameters
+	GlowAmount(150.f),
+	FresnelExponent(3.f),
+	FresnelReflectFraction(4.f),
+	PulseCurveTime(5.f),
+	SlotIndex(0),
+	bCharacterInventoryFull(false)
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -83,11 +85,11 @@ void AItem::BeginPlay()
 	StartPulseTimer();
 }
 
-void AItem::OnSphereOverlap(UPrimitiveComponent *OverlappedComponent, AActor *OtherActor, UPrimitiveComponent *OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult)
+void AItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor)
 	{
-		AShooterCharacter *ShooterCharacter = Cast<AShooterCharacter>(OtherActor);
+		AShooterCharacter* ShooterCharacter = Cast<AShooterCharacter>(OtherActor);
 		if (ShooterCharacter)
 		{
 			ShooterCharacter->IncrementOverlappedItemCount(1, ID);
@@ -95,11 +97,11 @@ void AItem::OnSphereOverlap(UPrimitiveComponent *OverlappedComponent, AActor *Ot
 	}
 }
 
-void AItem::OnSphereEndOverlap(UPrimitiveComponent *OverlappedComponent, AActor *OtherActor, UPrimitiveComponent *OtherComp, int32 OtherBodyIndex)
+void AItem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	if (OtherActor)
 	{
-		AShooterCharacter *ShooterCharacter = Cast<AShooterCharacter>(OtherActor);
+		AShooterCharacter* ShooterCharacter = Cast<AShooterCharacter>(OtherActor);
 		if (ShooterCharacter)
 		{
 			ShooterCharacter->IncrementOverlappedItemCount(-1, ID);
@@ -252,8 +254,7 @@ void AItem::FinishInterping()
 
 void AItem::ItemInterp(float DeltaTime)
 {
-	if (!bInterping)
-		return;
+	if (!bInterping) return;
 
 	if (Character && ItemZCurve)
 	{
@@ -261,18 +262,17 @@ void AItem::ItemInterp(float DeltaTime)
 		const float ElapsedTime = GetWorldTimerManager().GetTimerElapsed(ItemInterpTimer);
 		// Get curve value corresponding to ElapsedTime
 		const float CurveValue = ItemZCurve->GetFloatValue(ElapsedTime);
-		UE_LOG(LogTemp, Warning, TEXT("CurveValue: %f"), CurveValue);
 		// Get the item's initial location when the curve started
 		FVector ItemLocation = ItemInterpStartLocation;
 		// Get location in front of the camera
-		const FVector CameraInterpLocation{GetInterpLocation()};
+		const FVector CameraInterpLocation{ GetInterpLocation() };
 
 		// Vector from Item to Camera Interp Location, X and Y are zeroed out
-		const FVector ItemToCamera{FVector(0.f, 0.f, (CameraInterpLocation - ItemLocation).Z)};
+		const FVector ItemToCamera{ FVector(0.f, 0.f, (CameraInterpLocation).Z) };
 		// Scale factor to multiply with CurveValue
 		const float DeltaZ = ItemToCamera.Size();
 
-		const FVector CurrentLocation{GetActorLocation()};
+		const FVector CurrentLocation{ GetActorLocation() };
 		// Interpolated X value
 		const float InterpXValue = FMath::FInterpTo(
 			CurrentLocation.X,
@@ -295,9 +295,9 @@ void AItem::ItemInterp(float DeltaTime)
 		SetActorLocation(ItemLocation, true, nullptr, ETeleportType::TeleportPhysics);
 
 		// Camera rotation this frame
-		const FRotator CameraRotation{Character->GetFollowCamera()->GetComponentRotation()};
+		const FRotator CameraRotation{ Character->GetFollowCamera()->GetComponentRotation() };
 		// Camera rotation plus inital Yaw Offset
-		FRotator ItemRotation{0.f, CameraRotation.Yaw + InterpInitialYawOffset, 0.f};
+		FRotator ItemRotation{ 0.f, CameraRotation.Yaw + InterpInitialYawOffset, 0.f };
 		SetActorRotation(ItemRotation, ETeleportType::TeleportPhysics);
 
 		if (ItemScaleCurve)
@@ -311,21 +311,28 @@ void AItem::ItemInterp(float DeltaTime)
 FVector AItem::GetInterpLocation()
 {
 	if (Character == nullptr)
-		return FVector(0.f);
+	{
+		return FVector(0.f);  // Return origin if Character is null
+	}
 
 	switch (ItemType)
 	{
 	case EItemType::EIT_Ammo:
 		return Character->GetInterpLocation(InterpLocIndex).SceneComponent->GetComponentLocation();
-		break;
 
 	case EItemType::EIT_Weapon:
 		return Character->GetInterpLocation(0).SceneComponent->GetComponentLocation();
-		break;
-	}
 
-	return FVector();
+	case EItemType::EIT_None:
+		UE_LOG(LogTemp, Warning, TEXT("GetInterpLocation called for item with no type."));
+		return FVector(-1.f, -1.f, -1.f);  // Return a specific invalid vector
+
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("GetInterpLocation called with unexpected item type."));
+		return FVector(-1.f, -1.f, -1.f);
+	}
 }
+
 
 void AItem::PlayPickupSound(bool bForcePlaySound)
 {
@@ -370,7 +377,7 @@ void AItem::InitializeCustomDepth()
 	DisableCustomDepth();
 }
 
-void AItem::OnConstruction(const FTransform &Transform)
+void AItem::OnConstruction(const FTransform& Transform)
 {
 	// Load the data in the Item Rarity Data Table
 
@@ -387,16 +394,16 @@ void AItem::OnConstruction(const FTransform &Transform)
 			break;
 		case EItemRarity::EIR_Common:
 			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Common"), TEXT(""));
-			break;
+		break;
 		case EItemRarity::EIR_Uncommon:
 			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Uncommon"), TEXT(""));
-			break;
+		break;
 		case EItemRarity::EIR_Rare:
 			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Rare"), TEXT(""));
-			break;
+		break;
 		case EItemRarity::EIR_Legendary:
 			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Legendary"), TEXT(""));
-			break;
+		break;
 		}
 
 		if (RarityRow)
@@ -406,20 +413,20 @@ void AItem::OnConstruction(const FTransform &Transform)
 			DarkColor = RarityRow->DarkColor;
 			NumberOfStars = RarityRow->NumberOfStars;
 			IconBackground = RarityRow->IconBackground;
-
 			if (GetItemMesh())
 			{
 				GetItemMesh()->SetCustomDepthStencilValue(RarityRow->CustomDepthStencil);
 			}
 		}
 	}
+
 	if (MaterialInstance)
 	{
 		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, this);
-		DynamicMaterialInstance->SetVectorParameterValue(TEXT("FresnelColor"), GetGlowColor());
+		DynamicMaterialInstance->SetVectorParameterValue(TEXT("FresnelColor"), GlowColor);
 		ItemMesh->SetMaterial(MaterialIndex, DynamicMaterialInstance);
-		EnableGlowMaterial();
 
+		EnableGlowMaterial();
 	}
 }
 
@@ -519,7 +526,7 @@ void AItem::SetItemState(EItemState State)
 	SetItemProperties(State);
 }
 
-void AItem::StartItemCurve(AShooterCharacter *Char, bool bForcePlaySound)
+void AItem::StartItemCurve(AShooterCharacter* Char, bool bForcePlaySound)
 {
 	// Store a handle to the Character
 	Character = Char;
@@ -544,11 +551,12 @@ void AItem::StartItemCurve(AShooterCharacter *Char, bool bForcePlaySound)
 		ZCurveTime);
 
 	// Get initial Yaw of the Camera
-	const float CameraRotationYaw = Character->GetFollowCamera()->GetComponentRotation().Yaw;
+	const float CameraRotationYaw(Character->GetFollowCamera()->GetComponentRotation().Yaw);
 	// Get initial Yaw of the Item
-	const float ItemRotationYaw = GetActorRotation().Yaw;
+	const float ItemRotationYaw(GetActorRotation().Yaw);
 	// Initial Yaw offset between Camera and Item
 	InterpInitialYawOffset = ItemRotationYaw - CameraRotationYaw;
 
 	bCanChangeCustomDepth = false;
 }
+

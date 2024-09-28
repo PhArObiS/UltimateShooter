@@ -13,12 +13,9 @@
 #include "Item.h"
 #include "Components/WidgetComponent.h"
 #include "Weapon.h"
-#include "Components/SphereComponent.h"
-#include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Ammo.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
-#include "UltimateShooter2/UltimateShooter2.h"
 #include "BulletHitInterface.h"
 #include "Enemy.h"
 #include "EnemyController.h"
@@ -321,68 +318,36 @@ bool AShooterCharacter::GetBeamEndLocation(
 	FHitResult& OutHitResult)
 {
 	FVector OutBeamLocation;
-	// Log muzzle location
-	UE_LOG(LogTemp, Warning, TEXT("Muzzle Location: %s"), *MuzzleSocketLocation.ToString());
-
 	// Check for crosshair trace hit
 	FHitResult CrosshairHitResult;
 	bool bCrosshairHit = TraceUnderCrosshairs(CrosshairHitResult, OutBeamLocation);
 
 	if (bCrosshairHit)
 	{
-		// Tentative beam location if crosshair hits something
+		// Tentative beam location - still need to trace from gun
 		OutBeamLocation = CrosshairHitResult.Location;
-		UE_LOG(LogTemp, Warning, TEXT("Crosshair hit at: %s"), *OutBeamLocation.ToString());
 	}
-	else
+	else // no crosshair trace hit
 	{
-		// Default beam location if crosshair doesn't hit
-		OutBeamLocation = MuzzleSocketLocation + (GetControlRotation().Vector() * 50000.0f);
-		UE_LOG(LogTemp, Warning, TEXT("No crosshair hit. Setting default beam end location to: %s"), *OutBeamLocation.ToString());
+		// OutBeamLocation is the End location for the line trace
 	}
 
-	
-
-	// Perform a second trace, this time from the gun barrel to the beam location
+	// Perform a second trace, this time from the gun barrel
 	const FVector WeaponTraceStart{ MuzzleSocketLocation };
 	const FVector WeaponTraceEnd{ OutBeamLocation };
-
-	UE_LOG(LogTemp, Warning, TEXT("Weapon Trace Start: %s, End: %s"), *WeaponTraceStart.ToString(), *WeaponTraceEnd.ToString());
-
-	// Perform line trace
 	GetWorld()->LineTraceSingleByChannel(
 		OutHitResult,
 		WeaponTraceStart,
 		WeaponTraceEnd,
 		ECollisionChannel::ECC_Visibility);
-
-	// Draw debug line for the trace
-	DrawDebugLine(GetWorld(), WeaponTraceStart, WeaponTraceEnd, FColor::Green, false, 2.0f, 0, 2.0f);
-
-	if (!OutHitResult.bBlockingHit) 
+	if (!OutHitResult.bBlockingHit) // object between barrel and BeamEndPoint?
 	{
 		OutHitResult.Location = OutBeamLocation;
 		return false;
 	}
 
-	if (OutHitResult.GetActor())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *OutHitResult.GetActor()->GetName());
-	}
-
-	// Check if the trace hit anything
-	if (!OutHitResult.bBlockingHit)
-	{
-		OutHitResult.Location = OutBeamLocation;
-		UE_LOG(LogTemp, Warning, TEXT("No blocking hit. Beam end location: %s"), *OutBeamLocation.ToString());
-		return false;
-	}
-
-	// Log the hit result if we hit something
-	UE_LOG(LogTemp, Warning, TEXT("Blocking hit at: %s"), *OutHitResult.Location.ToString());
 	return true;
 }
-
 
 void AShooterCharacter::AimingButtonPressed()
 {
@@ -791,133 +756,95 @@ void AShooterCharacter::PlayFireSound()
 
 void AShooterCharacter::SendBullet()
 {
-    // Send bullet
-    const USkeletalMeshSocket* BarrelSocket = 
-        EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
+    // Send bullet from the weapon's barrel socket
+    const USkeletalMeshSocket* BarrelSocket = EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
+    
     if (BarrelSocket)
     {
-        // Get the socket transform for the weapon's barrel
-        const FTransform SocketTransform = BarrelSocket->GetSocketTransform(
-            EquippedWeapon->GetItemMesh());
+        // Get the socket's transform (position, rotation, etc.)
+        const FTransform SocketTransform = BarrelSocket->GetSocketTransform(EquippedWeapon->GetItemMesh());
 
-        // Log the socket transform information
-        UE_LOG(LogTemp, Warning, TEXT("Socket Transform: Location: %s, Rotation: %s"),
-            *SocketTransform.GetLocation().ToString(),
-            *SocketTransform.GetRotation().Rotator().ToString());
-
-        // Check for the muzzle flash and spawn it if valid
+        // Check if the weapon has a muzzle flash particle effect and spawn it at the barrel's location
         if (EquippedWeapon->GetMuzzleFlash())
         {
-            UE_LOG(LogTemp, Warning, TEXT("Muzzle flash exists."));
             UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), SocketTransform);
         }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("Muzzle flash is missing!"));
-        }
 
-        // Hit result to store beam hit location
+        // Declare a hit result for the beam trace and a flag for checking if we hit something
         FHitResult BeamHitResult;
-        bool bBeamEnd = GetBeamEndLocation(
-            SocketTransform.GetLocation(), BeamHitResult);
-        
-        // Check if beam end location is valid
+        bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamHitResult);
+
         if (bBeamEnd)
         {
-            UE_LOG(LogTemp, Warning, TEXT("Beam end location valid at: %s"), *BeamHitResult.Location.ToString());
-
-            // Check if we hit an actor
+            // Check if we hit an actor (replaces BeamHitResult.Actor.IsValid())
             if (BeamHitResult.GetActor())
             {
-                // Log the hit actor's name
-                UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *BeamHitResult.GetActor()->GetName());
-
-                // Check if the actor implements the BulletHitInterface
+                // Check if the hit actor implements the BulletHitInterface
                 IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
                 if (BulletHitInterface)
                 {
+                    // Call the BulletHit_Implementation function from the interface
                     BulletHitInterface->BulletHit_Implementation(BeamHitResult, this, GetController());
-                    UE_LOG(LogTemp, Warning, TEXT("Bullet hit interface implemented on Actor: %s"), *BeamHitResult.GetActor()->GetName());
                 }
 
-                // Check if we hit an enemy
+                // Check if the hit actor is an enemy
                 AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
                 if (HitEnemy)
                 {
-                    int32 Damage{};
+                    int32 Damage = 0;
+
+                    // If the hit bone is the head, apply headshot damage
                     if (BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone())
                     {
-                        // Log headshot detection
-                        UE_LOG(LogTemp, Warning, TEXT("Headshot detected on: %s"), *HitEnemy->GetName());
+                        // Head shot: apply headshot damage
                         Damage = EquippedWeapon->GetHeadShotDamage();
                         UGameplayStatics::ApplyDamage(
-                            BeamHitResult.GetActor(),
-                            Damage,
-                            GetController(),
-                            this,
-                            UDamageType::StaticClass());
+                            BeamHitResult.GetActor(),  // Apply damage to the hit actor
+                            Damage,                   // Damage amount
+                            GetController(),           // Controller responsible for the damage
+                            this,                      // Damage causer
+                            UDamageType::StaticClass()  // Type of damage
+                        );
+
+                        // Show headshot hit number on the enemy
                         HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, true);
                     }
                     else
                     {
-                        // Log body shot detection
-                        UE_LOG(LogTemp, Warning, TEXT("Body shot detected on: %s"), *HitEnemy->GetName());
+                        // Body shot: apply regular damage
                         Damage = EquippedWeapon->GetDamage();
                         UGameplayStatics::ApplyDamage(
-                            BeamHitResult.GetActor(),
-                            Damage,
-                            GetController(),
-                            this,
-                            UDamageType::StaticClass());
+                            BeamHitResult.GetActor(),  // Apply damage to the hit actor
+                            Damage,                   // Damage amount
+                            GetController(),           // Controller responsible for the damage
+                            this,                      // Damage causer
+                            UDamageType::StaticClass()  // Type of damage
+                        );
+
+                        // Show body shot hit number on the enemy
                         HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, false);
                     }
                 }
             }
             else
             {
-                UE_LOG(LogTemp, Warning, TEXT("No actor hit, spawning default impact particles."));
-                // Spawn default particles if no actor is hit
+                // If no actor was hit, spawn default impact particles at the hit location
                 if (ImpactParticles)
                 {
-                    UGameplayStatics::SpawnEmitterAtLocation(
-                        GetWorld(),
-                        ImpactParticles,
-                        BeamHitResult.Location);
-                }
-                else
-                {
-                    UE_LOG(LogTemp, Error, TEXT("Impact particles missing!"));
+                    UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, BeamHitResult.Location);
                 }
             }
 
-            // Log beam particle spawning
-            UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
-                GetWorld(),
-                BeamParticles,
-                SocketTransform);
+            // Spawn the beam particle effect at the socket (bullet trajectory visualization)
+            UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeamParticles, SocketTransform);
             if (Beam)
             {
-                UE_LOG(LogTemp, Warning, TEXT("Smoke trail/beam spawned."));
+                // Set the target location of the beam to the hit location
                 Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
             }
-            else
-            {
-                UE_LOG(LogTemp, Error, TEXT("Failed to spawn smoke trail/beam."));
-            }
         }
-        else
-        {
-            UE_LOG(LogTemp, Error, TEXT("No beam end location found!"));
-        }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("Barrel socket not found!"));
     }
 }
-
-
-
 
 void AShooterCharacter::PlayGunfireMontage()
 {
@@ -1290,8 +1217,8 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AShooterCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AShooterCharacter::MoveRight);
-	PlayerInputComponent->BindAxis("TurnRate", this, &AShooterCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &AShooterCharacter::LookUpAtRate);
+	PlayerInputComponent->BindAxis("TurnAtRate", this, &AShooterCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUpAtRate", this, &AShooterCharacter::LookUpAtRate);
 	PlayerInputComponent->BindAxis("Turn", this, &AShooterCharacter::Turn);
 	PlayerInputComponent->BindAxis("LookUp", this, &AShooterCharacter::LookUp);
 
