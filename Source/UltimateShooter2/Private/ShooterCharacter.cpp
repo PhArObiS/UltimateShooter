@@ -291,63 +291,116 @@ void AShooterCharacter::LookUp(float Value)
 
 void AShooterCharacter::FireWeapon()
 {
-	if (EquippedWeapon == nullptr) return;
-	if (CombatState != ECombatState::ECS_Unoccupied) return;
+    // Log the current state before any checks
+    UE_LOG(LogTemp, Log, TEXT("FireWeapon called - Current CombatState: %s"), *UEnum::GetValueAsString(CombatState));
 
-	if (WeaponHasAmmo())
-	{
-		PlayFireSound();
-		SendBullet();
-		PlayGunfireMontage();
-		EquippedWeapon->DecrementAmmo();
+    if (EquippedWeapon == nullptr) 
+    {
+        UE_LOG(LogTemp, Warning, TEXT("FireWeapon: EquippedWeapon is nullptr! Exiting function."));
+        return;
+    }
 
-		StartFireTimer();
-		// Start bullet fire timer for crosshairs
-		StartCrosshairBulletFire();
+    if (CombatState != ECombatState::ECS_Unoccupied) 
+    {
+        UE_LOG(LogTemp, Warning, TEXT("FireWeapon: CombatState is not Unoccupied! Current CombatState: %s"), *UEnum::GetValueAsString(CombatState));
+        return;
+    }
 
-		if (EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol)
-		{
-			// Start moving slide timer
-			EquippedWeapon->StartSlideTimer();
-		}
-	}
+    if (WeaponHasAmmo())
+    {
+        UE_LOG(LogTemp, Log, TEXT("FireWeapon: Weapon has ammo, proceeding with firing."));
+
+        PlayFireSound();
+        UE_LOG(LogTemp, Log, TEXT("FireWeapon: PlayFireSound called."));
+
+        SendBullet();
+        UE_LOG(LogTemp, Log, TEXT("FireWeapon: SendBullet called."));
+
+        PlayGunfireMontage();
+        UE_LOG(LogTemp, Log, TEXT("FireWeapon: PlayGunfireMontage called."));
+
+        EquippedWeapon->DecrementAmmo();
+        UE_LOG(LogTemp, Log, TEXT("FireWeapon: DecrementAmmo called. Current ammo: %d"), EquippedWeapon->GetAmmo());
+
+        StartFireTimer();
+        UE_LOG(LogTemp, Log, TEXT("FireWeapon: StartFireTimer called."));
+
+        // Start bullet fire timer for crosshairs
+        StartCrosshairBulletFire();
+        UE_LOG(LogTemp, Log, TEXT("FireWeapon: StartCrosshairBulletFire called."));
+
+        if (EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol)
+        {
+            // Start moving slide timer
+            EquippedWeapon->StartSlideTimer();
+            UE_LOG(LogTemp, Log, TEXT("FireWeapon: StartSlideTimer called for Pistol."));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("FireWeapon: No ammo remaining in the weapon."));
+    }
 }
+
 
 bool AShooterCharacter::GetBeamEndLocation(
 	const FVector& MuzzleSocketLocation,
 	FHitResult& OutHitResult)
 {
 	FVector OutBeamLocation;
-	// Check for crosshair trace hit
+
+	// Crosshair trace hit result
 	FHitResult CrosshairHitResult;
 	bool bCrosshairHit = TraceUnderCrosshairs(CrosshairHitResult, OutBeamLocation);
 
+	// Log crosshair trace result
 	if (bCrosshairHit)
 	{
-		// Tentative beam location - still need to trace from gun
 		OutBeamLocation = CrosshairHitResult.Location;
+		UE_LOG(LogTemp, Log, TEXT("Crosshair hit at location: %s"), *CrosshairHitResult.Location.ToString());
 	}
-	else // no crosshair trace hit
+	else
 	{
-		// OutBeamLocation is the End location for the line trace
+		UE_LOG(LogTemp, Warning, TEXT("No crosshair hit."));
 	}
 
-	// Perform a second trace, this time from the gun barrel
-	const FVector WeaponTraceStart{ MuzzleSocketLocation };
-	const FVector WeaponTraceEnd{ OutBeamLocation };
+	// Draw a debug sphere at the OutBeamLocation
+	// DrawDebugSphere(GetWorld(), OutBeamLocation, 10.0f, 12, FColor::Red, false, 2.0f);
+
+	// Perform a second trace from the gun barrel
+	const FVector WeaponTraceStart = MuzzleSocketLocation;
+	const FVector WeaponTraceEnd = OutBeamLocation;
+
+	// Log the weapon trace start and end locations
+	UE_LOG(LogTemp, Log, TEXT("Weapon trace start: %s, end: %s"), *WeaponTraceStart.ToString(), *WeaponTraceEnd.ToString());
+
+	// Line trace from the weapon muzzle
 	GetWorld()->LineTraceSingleByChannel(
 		OutHitResult,
 		WeaponTraceStart,
 		WeaponTraceEnd,
 		ECollisionChannel::ECC_Visibility);
-	if (!OutHitResult.bBlockingHit) // object between barrel and BeamEndPoint?
+
+	// Draw a debug line for the weapon trace
+	// DrawDebugLine(GetWorld(), WeaponTraceStart, WeaponTraceEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+
+	// Check if we hit anything between the barrel and beam end point
+	if (!OutHitResult.bBlockingHit)
 	{
 		OutHitResult.Location = OutBeamLocation;
+		UE_LOG(LogTemp, Warning, TEXT("Weapon trace did not hit any surface."));
 		return false;
 	}
 
+	// Draw debug sphere where the hit occurred
+	// DrawDebugSphere(GetWorld(), OutHitResult.Location, 10.0f, 12, FColor::Blue, false, 2.0f);
+
+	UE_LOG(LogTemp, Log, TEXT("Weapon trace hit at location: %s"), *OutHitResult.Location.ToString());
+
 	return true;
 }
+
+
 
 void AShooterCharacter::AimingButtonPressed()
 {
@@ -507,7 +560,6 @@ void AShooterCharacter::StartFireTimer()
 void AShooterCharacter::AutoFireReset()
 {
 	if (CombatState == ECombatState::ECS_Stunned) return;
-
 	CombatState = ECombatState::ECS_Unoccupied;
 	
 	if (EquippedWeapon == nullptr) return;
@@ -526,47 +578,72 @@ void AShooterCharacter::AutoFireReset()
 }
 
 bool AShooterCharacter::TraceUnderCrosshairs(
-	FHitResult& OutHitResult,
-	FVector& OutHitLocation)
+    FHitResult& OutHitResult,
+    FVector& OutHitLocation)
 {
-	// Get Viewport Size
-	FVector2D ViewportSize;
-	if (GEngine && GEngine->GameViewport)
-	{
-		GEngine->GameViewport->GetViewportSize(ViewportSize);
-	}
+    // Get Viewport Size
+    FVector2D ViewportSize;
+    if (GEngine && GEngine->GameViewport)
+    {
+        GEngine->GameViewport->GetViewportSize(ViewportSize);
+    }
 
-	// Get screen space location of crosshairs
-	FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
-	FVector CrosshairWorldPosition;
-	FVector CrosshairWorldDirection;
+    // Get screen space location of crosshairs
+    FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
+    FVector CrosshairWorldPosition;
+    FVector CrosshairWorldDirection;
 
-	// Get world position and direction of crosshairs
-	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
-		UGameplayStatics::GetPlayerController(this, 0),
-		CrosshairLocation,
-		CrosshairWorldPosition,
-		CrosshairWorldDirection);
+	
+    // Get world position and direction of crosshairs
+    bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+        UGameplayStatics::GetPlayerController(this, 0),
+        CrosshairLocation,
+        CrosshairWorldPosition,
+        CrosshairWorldDirection);
 
-	if (bScreenToWorld)
-	{
-		// Trace from Crosshair world location outward
-		const FVector Start{ CrosshairWorldPosition };
-		const FVector End{ Start + CrosshairWorldDirection * 50'000.f };
-		OutHitLocation = End;
-		GetWorld()->LineTraceSingleByChannel(
-			OutHitResult,
-			Start,
-			End,
-			ECollisionChannel::ECC_Visibility);
-		if (OutHitResult.bBlockingHit)
-		{
-			OutHitLocation = OutHitResult.Location;
-			return true;
-		}
-	}
-	return false;
+    if (bScreenToWorld)
+    {
+        // Log deprojected values
+        UE_LOG(LogTemp, Log, TEXT("Crosshair World Position: %s, Direction: %s"),
+            *CrosshairWorldPosition.ToString(), *CrosshairWorldDirection.ToString());
+
+        // Trace from Crosshair world location outward
+        const FVector Start{ CrosshairWorldPosition };
+        const FVector End{ Start + CrosshairWorldDirection * 50000.f }; // Adjusted trace distance for testing
+        OutHitLocation = End;
+
+        // Draw a debug line for the trace
+        // DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 2.0f, 0, 1.0f);
+
+        // Perform the line trace
+        GetWorld()->LineTraceSingleByChannel(
+            OutHitResult,
+            Start,
+            End,
+            ECollisionChannel::ECC_Visibility);
+
+        if (OutHitResult.bBlockingHit)
+        {
+            OutHitLocation = OutHitResult.Location;
+
+            // Log information about the hit actor
+            const AActor* HitActor = OutHitResult.GetActor();
+            if (HitActor)
+            {
+                UE_LOG(LogTemp, Log, TEXT("Hit Actor: %s at location: %s"),
+                    *HitActor->GetName(), *OutHitLocation.ToString());
+            }
+
+            return true;
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Failed to deproject screen to world."));
+    }
+    return false;
 }
+
 
 void AShooterCharacter::TraceForItems()
 {
@@ -756,95 +833,73 @@ void AShooterCharacter::PlayFireSound()
 
 void AShooterCharacter::SendBullet()
 {
-    // Send bullet from the weapon's barrel socket
     const USkeletalMeshSocket* BarrelSocket = EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
     
     if (BarrelSocket)
     {
-        // Get the socket's transform (position, rotation, etc.)
         const FTransform SocketTransform = BarrelSocket->GetSocketTransform(EquippedWeapon->GetItemMesh());
 
-        // Check if the weapon has a muzzle flash particle effect and spawn it at the barrel's location
         if (EquippedWeapon->GetMuzzleFlash())
         {
             UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), SocketTransform);
         }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Muzzle flash is missing!"));
+        }
 
-        // Declare a hit result for the beam trace and a flag for checking if we hit something
         FHitResult BeamHitResult;
         bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamHitResult);
 
+        // Visualize the bullet trace
+        // DrawDebugLine(GetWorld(), SocketTransform.GetLocation(), BeamHitResult.Location, FColor::Yellow, false, 2.0f, 0, 1.0f);
+
         if (bBeamEnd)
         {
-            // Check if we hit an actor (replaces BeamHitResult.Actor.IsValid())
+            UE_LOG(LogTemp, Log, TEXT("Bullet hit at location: %s"), *BeamHitResult.Location.ToString());
+
             if (BeamHitResult.GetActor())
             {
-                // Check if the hit actor implements the BulletHitInterface
-                IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
-                if (BulletHitInterface)
-                {
-                    // Call the BulletHit_Implementation function from the interface
-                    BulletHitInterface->BulletHit_Implementation(BeamHitResult, this, GetController());
-                }
-
-                // Check if the hit actor is an enemy
+                UE_LOG(LogTemp, Log, TEXT("Hit actor: %s"), *BeamHitResult.GetActor()->GetName());
+                
                 AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
                 if (HitEnemy)
                 {
-                    int32 Damage = 0;
+                    int32 Damage = BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone() ? EquippedWeapon->GetHeadShotDamage() : EquippedWeapon->GetDamage();
+                    UGameplayStatics::ApplyDamage(HitEnemy, Damage, GetController(), this, UDamageType::StaticClass());
+                    HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone());
+                }
+            }
 
-                    // If the hit bone is the head, apply headshot damage
-                    if (BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone())
-                    {
-                        // Head shot: apply headshot damage
-                        Damage = EquippedWeapon->GetHeadShotDamage();
-                        UGameplayStatics::ApplyDamage(
-                            BeamHitResult.GetActor(),  // Apply damage to the hit actor
-                            Damage,                   // Damage amount
-                            GetController(),           // Controller responsible for the damage
-                            this,                      // Damage causer
-                            UDamageType::StaticClass()  // Type of damage
-                        );
+            if (ImpactParticles)
+            {
+                UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, BeamHitResult.Location);
+            }
 
-                        // Show headshot hit number on the enemy
-                        HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, true);
-                    }
-                    else
-                    {
-                        // Body shot: apply regular damage
-                        Damage = EquippedWeapon->GetDamage();
-                        UGameplayStatics::ApplyDamage(
-                            BeamHitResult.GetActor(),  // Apply damage to the hit actor
-                            Damage,                   // Damage amount
-                            GetController(),           // Controller responsible for the damage
-                            this,                      // Damage causer
-                            UDamageType::StaticClass()  // Type of damage
-                        );
-
-                        // Show body shot hit number on the enemy
-                        HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, false);
-                    }
+            if (BeamParticles)
+            {
+                UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeamParticles, SocketTransform);
+                if (Beam)
+                {
+                    Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
                 }
             }
             else
             {
-                // If no actor was hit, spawn default impact particles at the hit location
-                if (ImpactParticles)
-                {
-                    UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, BeamHitResult.Location);
-                }
-            }
-
-            // Spawn the beam particle effect at the socket (bullet trajectory visualization)
-            UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeamParticles, SocketTransform);
-            if (Beam)
-            {
-                // Set the target location of the beam to the hit location
-                Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
+                UE_LOG(LogTemp, Warning, TEXT("BeamParticles is nullptr!"));
             }
         }
+        else
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Beam trace did not hit any surface."));
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("BarrelSocket is nullptr!"));
     }
 }
+
 
 void AShooterCharacter::PlayGunfireMontage()
 {
@@ -1152,19 +1207,44 @@ void AShooterCharacter::Stun()
 EPhysicalSurface AShooterCharacter::GetSurfaceType()
 {
 	FHitResult HitResult;
+    
+	// Start trace from the character's location
 	const FVector Start{ GetActorLocation() };
+    
+	// Trace downwards by 400 units to check for physical materials beneath the character
 	const FVector End{ Start + FVector(0.f, 0.f, -400.f) };
+    
+	// Set up the query parameters for the trace
 	FCollisionQueryParams QueryParams;
-	QueryParams.bReturnPhysicalMaterial = true;
+	QueryParams.bReturnPhysicalMaterial = true; // Ensure we get the physical material
 
-	GetWorld()->LineTraceSingleByChannel(
+	// Perform the line trace
+	bool bHit = GetWorld()->LineTraceSingleByChannel(
 		HitResult,
 		Start,
 		End,
 		ECollisionChannel::ECC_Visibility,
 		QueryParams);
-	return UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
+
+	// If the trace hit something, return the surface type
+	if (bHit)
+	{
+		// Log the hit location and the surface type for debugging
+		UE_LOG(LogTemp, Log, TEXT("Hit surface at: %s"), *HitResult.Location.ToString());
+        
+		// Get the physical material and determine the surface type
+		return UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
+	}
+	else
+	{
+		// If no hit was detected, log a warning and return a default surface type
+		UE_LOG(LogTemp, Warning, TEXT("No surface hit while tracing for surface type."));
+        
+		// Return a default surface type if no hit
+		return EPhysicalSurface::SurfaceType_Default; // Replace with appropriate default
+	}
 }
+
 
 void AShooterCharacter::EndStun()
 {

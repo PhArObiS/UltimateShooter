@@ -268,7 +268,7 @@ void AItem::ItemInterp(float DeltaTime)
 		const FVector CameraInterpLocation{ GetInterpLocation() };
 
 		// Vector from Item to Camera Interp Location, X and Y are zeroed out
-		const FVector ItemToCamera{ FVector(0.f, 0.f, (CameraInterpLocation).Z) };
+		const FVector ItemToCamera{ FVector(0.f, 0.f, (CameraInterpLocation - ItemLocation).Z) };
 		// Scale factor to multiply with CurveValue
 		const float DeltaZ = ItemToCamera.Size();
 
@@ -310,10 +310,7 @@ void AItem::ItemInterp(float DeltaTime)
 
 FVector AItem::GetInterpLocation()
 {
-	if (Character == nullptr)
-	{
-		return FVector(0.f);  // Return origin if Character is null
-	}
+	if (Character == nullptr) return FVector(0.f);  // Return origin if Character is null 
 
 	switch (ItemType)
 	{
