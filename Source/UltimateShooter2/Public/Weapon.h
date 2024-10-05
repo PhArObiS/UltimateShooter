@@ -21,7 +21,7 @@ struct FWeaponDataTable : public FTableRowBase
 	int32 WeaponAmmo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MagazingCapacity;
+	int32 MagazineCapacity;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	class USoundCue* PickupSound;

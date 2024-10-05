@@ -94,7 +94,7 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 		{
 			AmmoType = WeaponDataRow->AmmoType;
 			Ammo = WeaponDataRow->WeaponAmmo;
-			MagazineCapacity = WeaponDataRow->MagazingCapacity;
+			MagazineCapacity = WeaponDataRow->MagazineCapacity;
 			SetPickupSound(WeaponDataRow->PickupSound);
 			SetEquipSound(WeaponDataRow->EquipSound);
 			GetItemMesh()->SetSkeletalMesh(WeaponDataRow->ItemMesh);

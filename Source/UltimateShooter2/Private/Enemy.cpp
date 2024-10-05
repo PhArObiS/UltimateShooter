@@ -208,7 +208,7 @@ void AEnemy::StoreHitNumber(UUserWidget* HitNumber, FVector Location)
 		false);
 }
 
-void AEnemy::DestroyHitNumber(UUserWidget* HitNumber)
+void AEnemy:: DestroyHitNumber(UUserWidget* HitNumber)
 {
 	HitNumbers.Remove(HitNumber);
 	HitNumber->RemoveFromParent();
