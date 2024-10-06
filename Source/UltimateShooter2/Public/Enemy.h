@@ -93,18 +93,7 @@ protected:
 	void DeactivateRightWeapon();
 
 	void DoDamage(class AShooterCharacter* Victim);
-	void SpawnBlood(AShooterCharacter* Victim, FName SocketName);
-
-	// Attempt to stun character
-	void StunCharacter(AShooterCharacter* Victim);
-
-	void ResetCanAttack();
-
-	UFUNCTION(BlueprintCallable)
-	void FinishDeath();
-
-	UFUNCTION()
-	void DestroyEnemy();
+	// void SpawnBlood(AShooterCharacter* Victim, FName SocketName);
 
 private:
 	/** Particles to spawn when hit by bullets */
@@ -116,7 +105,7 @@ private:
 	class USoundCue* ImpactSound;
 
 	/** Current health of the enemy */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float Health;
 
 	/** Maximum health of the enemy */
@@ -217,28 +206,6 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	FName RightWeaponSocket;
 
-	/** True when Enemy can attack */
-	UPROPERTY(VisibleAnywhere, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	bool bCanAttack;
-
-	FTimerHandle AttackWaitTimer;
-
-	/** Minimum wait time between attacks */
-	UPROPERTY(EditAnywhere, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	float AttackWaitTime;
-
-	/** Death anim montage for the enemy */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* DeathMontage;
-
-	bool bDying;
-
-	FTimerHandle DeathTimer;
-
-	/** Time after death until Destroy */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	float DeathTime;
-
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -246,7 +213,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	virtual void BulletHit_Implementation(FHitResult HitResult, AActor* Shooter, AController* ShooterController) override;
+	virtual void BulletHit_Implementation(FHitResult HitResult) override;
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 

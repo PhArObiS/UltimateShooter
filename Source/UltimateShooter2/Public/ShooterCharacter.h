@@ -14,7 +14,6 @@ enum class ECombatState : uint8
 	ECS_FireTimerInProgress UMETA(DisplayName = "FireTimerInProgress"),
 	ECS_Reloading UMETA(DisplayName = "Reloading"),
 	ECS_Equipping UMETA(DisplayName = "Equipping"),
-	ECS_Stunned UMETA(DisplayName = "Stunned"),
 
 	ECS_NAX UMETA(DisplayName = "DefaultMAX")
 };
@@ -52,7 +51,7 @@ public:
 		struct FDamageEvent const& DamageEvent,
 		class AController* EventInstigator,
 		AActor* DamageCauser) override;
-
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -102,6 +101,11 @@ protected:
 	void SetLookRates();
 
 	void CalculateCrosshairSpread(float DeltaTime);
+	
+	void StartCrosshairBulletFire();
+
+	UFUNCTION()
+	void FinishCrosshairBulletFire();
 
 	void FireButtonPressed();
 	void FireButtonReleased();
@@ -189,19 +193,6 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	EPhysicalSurface GetSurfaceType();
-
-	UFUNCTION(BlueprintCallable)
-	void EndStun();
-
-	void Die();
-
-	UFUNCTION(BlueprintCallable)
-	void FinishDeath();
-
-	void StartCrosshairBulletFire();
-
-	UFUNCTION()
-	void FinishCrosshairBulletFire();
 
 public:
 	// Called every frame
@@ -309,6 +300,10 @@ private:
 	/** Shooting component for crosshairs spread */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
 	float CrosshairShootingFactor;
+	
+	float ShootTimeDuration;
+	bool bFiringBullet;
+	FTimerHandle CrosshairShootTimer;
 
 	/** Left mouse button or right console trigger pressed */
 	bool bFireButtonPressed;
@@ -497,28 +492,6 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	UParticleSystem* BloodParticles;
 
-	/** Hit react anim montage; for when Character is stunned */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* HitReactMontage;
-
-	/** Chance of being stunned when hit by an enemy */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	float StunChance;
-
-	/** Montage for Character death */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* DeathMontage;
-
-	/** true when Character dies */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	bool bDead;
-
-	float ShootTimeDuration;
-	bool bFiringBullet;
-	FTimerHandle CrosshairShootTimer;
-
-	TArray<FGuid> ItemGuids;
-
 public:
 	/** Returns CameraBoom subobject */
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
@@ -533,7 +506,7 @@ public:
 	FORCEINLINE int8 GetOverlappedItemCount() const { return OverlappedItemCount; }
 
 	/** Adds/subtracts to/from OverlappedItemCount and updates bShouldTraceForItems */
-	void IncrementOverlappedItemCount(int8 Amount, FGuid ID);
+	void IncrementOverlappedItemCount(int8 Amount);
 
 	// No longer needed; AItem has GetInterpLocation
 	//FVector GetCameraInterpLocation();
@@ -560,7 +533,4 @@ public:
 	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquippedWeapon; }
 	FORCEINLINE USoundCue* GetMeleeImpactSound() const { return MeleeImpactSound; }
 	FORCEINLINE UParticleSystem* GetBloodParticles() const { return BloodParticles; }
-
-	void Stun();
-	FORCEINLINE float GetStunChance() const { return StunChance; }
 };

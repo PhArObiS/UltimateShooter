@@ -29,6 +29,6 @@ private:
 
 public:
 
-	FORCEINLINE UBlackboardComponent* GetBlackboardComponent() const { return BlackboardComponent; }
+	FORCEINLINE UBlackboardComponent* GetEnemyBlackboardComponent() const { return BlackboardComponent; }
 	
 };

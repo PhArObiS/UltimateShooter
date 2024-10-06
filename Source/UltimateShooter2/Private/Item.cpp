@@ -62,8 +62,6 @@ void AItem::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ID = FGuid::NewGuid();
-
 	// Hide Pickup Widget
 	if (PickupWidget)
 	{
@@ -86,16 +84,19 @@ void AItem::BeginPlay()
 }
 
 void AItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+
 {
 	if (OtherActor)
 	{
 		AShooterCharacter* ShooterCharacter = Cast<AShooterCharacter>(OtherActor);
 		if (ShooterCharacter)
 		{
-			ShooterCharacter->IncrementOverlappedItemCount(1, ID);
+			ShooterCharacter->IncrementOverlappedItemCount(1);
 		}
 	}
 }
+
+
 
 void AItem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
@@ -104,8 +105,7 @@ void AItem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 		AShooterCharacter* ShooterCharacter = Cast<AShooterCharacter>(OtherActor);
 		if (ShooterCharacter)
 		{
-			ShooterCharacter->IncrementOverlappedItemCount(-1, ID);
-			ShooterCharacter->UnHighlightInventorySlot();
+			ShooterCharacter->IncrementOverlappedItemCount(-1);
 		}
 	}
 }
@@ -316,7 +316,7 @@ FVector AItem::GetInterpLocation()
 	{
 	case EItemType::EIT_Ammo:
 		return Character->GetInterpLocation(InterpLocIndex).SceneComponent->GetComponentLocation();
-
+	
 	case EItemType::EIT_Weapon:
 		return Character->GetInterpLocation(0).SceneComponent->GetComponentLocation();
 
@@ -329,6 +329,7 @@ FVector AItem::GetInterpLocation()
 		return FVector(-1.f, -1.f, -1.f);
 	}
 }
+
 
 
 void AItem::PlayPickupSound(bool bForcePlaySound)

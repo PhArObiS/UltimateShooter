@@ -13,13 +13,15 @@
 #include "Item.h"
 #include "Components/WidgetComponent.h"
 #include "Weapon.h"
+#include "Components/SphereComponent.h"
+#include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Ammo.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
+#include "UltimateShooter2/UltimateShooter2.h"
 #include "BulletHitInterface.h"
 #include "Enemy.h"
-#include "EnemyController.h"
-#include "BehaviorTree/BlackboardComponent.h"
+
 
 // Sets default values
 AShooterCharacter::AShooterCharacter() :
@@ -50,6 +52,9 @@ AShooterCharacter::AShooterCharacter() :
 	CrosshairInAirFactor(0.f),
 	CrosshairAimFactor(0.f),
 	CrosshairShootingFactor(0.f),
+	// Bullet fire timer variables
+	ShootTimeDuration(0.05f),
+	bFiringBullet(false),
 	// Automatic fire variables
 	bShouldFire(true),
 	bFireButtonPressed(false),
@@ -80,12 +85,8 @@ AShooterCharacter::AShooterCharacter() :
 	// Icon animation property
 	HighlightedSlot(-1),
 	Health(100.f),
-	MaxHealth(100.f),
-	StunChance(.25f),
-	bDead(false),
-	// Bullet fire timer variables
-	ShootTimeDuration(0.05f),
-	bFiringBullet(false)
+	MaxHealth(100.f)
+	// StunChance(.25f)
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -139,21 +140,12 @@ AShooterCharacter::AShooterCharacter() :
 	InterpComp6->SetupAttachment(GetFollowCamera());
 }
 
-float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
 {
 	if (Health - DamageAmount <= 0.f)
 	{
 		Health = 0.f;
-		Die();
-
-		auto EnemyController = Cast<AEnemyController>(EventInstigator);
-		if (EnemyController)
-		{
-			EnemyController->GetBlackboardComponent()->SetValueAsBool(
-				FName(TEXT("CharacterDead")),
-				true
-			);
-		}
 	}
 	else
 	{
@@ -162,44 +154,7 @@ float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	return DamageAmount;
 }
 
-void AShooterCharacter::Die()
-{
-	bDead = true;
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance && DeathMontage)
-	{
-		AnimInstance->Montage_Play(DeathMontage);
-		AnimInstance->Montage_JumpToSection(FName("DeathA"), DeathMontage);
-	}
-}
-
-void AShooterCharacter::FinishDeath()
-{
-	GetMesh()->bPauseAnims = true;
-	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
-	if (PC)
-	{
-		DisableInput(PC);
-	}
-}
-
-void AShooterCharacter::StartCrosshairBulletFire()
-{
-	bFiringBullet = true;
-
-	GetWorldTimerManager().SetTimer(
-		CrosshairShootTimer,
-		this,
-		&AShooterCharacter::FinishCrosshairBulletFire,
-		ShootTimeDuration);
-}
-
-void AShooterCharacter::FinishCrosshairBulletFire()
-{
-	bFiringBullet = false;
-}
-
-	// Called when the game starts or when spawned
+// Called when the game starts or when spawned
 void AShooterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -291,121 +246,67 @@ void AShooterCharacter::LookUp(float Value)
 
 void AShooterCharacter::FireWeapon()
 {
-    // Log the current state before any checks
-    UE_LOG(LogTemp, Log, TEXT("FireWeapon called - Current CombatState: %s"), *UEnum::GetValueAsString(CombatState));
+	if (EquippedWeapon == nullptr) return;
+	if (CombatState != ECombatState::ECS_Unoccupied) return;
 
-    if (EquippedWeapon == nullptr) 
-    {
-        UE_LOG(LogTemp, Warning, TEXT("FireWeapon: EquippedWeapon is nullptr! Exiting function."));
-        return;
-    }
+	if (WeaponHasAmmo())
+	{
+		PlayFireSound();
+		SendBullet();
+		PlayGunfireMontage();
+		EquippedWeapon->DecrementAmmo();
 
-    if (CombatState != ECombatState::ECS_Unoccupied) 
-    {
-        UE_LOG(LogTemp, Warning, TEXT("FireWeapon: CombatState is not Unoccupied! Current CombatState: %s"), *UEnum::GetValueAsString(CombatState));
-        return;
-    }
+		StartFireTimer();
 
-    if (WeaponHasAmmo())
-    {
-        UE_LOG(LogTemp, Log, TEXT("FireWeapon: Weapon has ammo, proceeding with firing."));
-
-        PlayFireSound();
-        UE_LOG(LogTemp, Log, TEXT("FireWeapon: PlayFireSound called."));
-
-        SendBullet();
-        UE_LOG(LogTemp, Log, TEXT("FireWeapon: SendBullet called."));
-
-        PlayGunfireMontage();
-        UE_LOG(LogTemp, Log, TEXT("FireWeapon: PlayGunfireMontage called."));
-
-        EquippedWeapon->DecrementAmmo();
-        UE_LOG(LogTemp, Log, TEXT("FireWeapon: DecrementAmmo called. Current ammo: %d"), EquippedWeapon->GetAmmo());
-
-        StartFireTimer();
-        UE_LOG(LogTemp, Log, TEXT("FireWeapon: StartFireTimer called."));
-
-        // Start bullet fire timer for crosshairs
-        StartCrosshairBulletFire();
-        UE_LOG(LogTemp, Log, TEXT("FireWeapon: StartCrosshairBulletFire called."));
-
-        if (EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol)
-        {
-            // Start moving slide timer
-            EquippedWeapon->StartSlideTimer();
-            UE_LOG(LogTemp, Log, TEXT("FireWeapon: StartSlideTimer called for Pistol."));
-        }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("FireWeapon: No ammo remaining in the weapon."));
-    }
+		if (EquippedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol)
+		{
+			// Start moving slide timer
+			EquippedWeapon->StartSlideTimer();
+		}
+	}
 }
-
 
 bool AShooterCharacter::GetBeamEndLocation(
 	const FVector& MuzzleSocketLocation,
 	FHitResult& OutHitResult)
 {
 	FVector OutBeamLocation;
-
-	// Crosshair trace hit result
+	// Check for crosshair trace hit
 	FHitResult CrosshairHitResult;
 	bool bCrosshairHit = TraceUnderCrosshairs(CrosshairHitResult, OutBeamLocation);
 
-	// Log crosshair trace result
 	if (bCrosshairHit)
 	{
+		// Tentative beam location - still need to trace from gun
 		OutBeamLocation = CrosshairHitResult.Location;
-		UE_LOG(LogTemp, Log, TEXT("Crosshair hit at location: %s"), *CrosshairHitResult.Location.ToString());
 	}
-	else
+	else // no crosshair trace hit
 	{
-		UE_LOG(LogTemp, Warning, TEXT("No crosshair hit."));
+		// OutBeamLocation is the End location for the line trace
 	}
 
-	// Draw a debug sphere at the OutBeamLocation
-	// DrawDebugSphere(GetWorld(), OutBeamLocation, 10.0f, 12, FColor::Red, false, 2.0f);
-
-	// Perform a second trace from the gun barrel
-	const FVector WeaponTraceStart = MuzzleSocketLocation;
-	const FVector WeaponTraceEnd = OutBeamLocation;
-
-	// Log the weapon trace start and end locations
-	UE_LOG(LogTemp, Log, TEXT("Weapon trace start: %s, end: %s"), *WeaponTraceStart.ToString(), *WeaponTraceEnd.ToString());
-
-	// Line trace from the weapon muzzle
+	// Perform a second trace, this time from the gun barrel
+	const FVector WeaponTraceStart{ MuzzleSocketLocation };
+	const FVector StartToEnd{ OutBeamLocation - WeaponTraceStart };
+	const FVector WeaponTraceEnd{ MuzzleSocketLocation + StartToEnd * 1.25f };
 	GetWorld()->LineTraceSingleByChannel(
 		OutHitResult,
 		WeaponTraceStart,
 		WeaponTraceEnd,
 		ECollisionChannel::ECC_Visibility);
-
-	// Draw a debug line for the weapon trace
-	// DrawDebugLine(GetWorld(), WeaponTraceStart, WeaponTraceEnd, FColor::Green, false, 2.0f, 0, 1.0f);
-
-	// Check if we hit anything between the barrel and beam end point
-	if (!OutHitResult.bBlockingHit)
+	if (!OutHitResult.bBlockingHit) // object between barrel and BeamEndPoint?
 	{
 		OutHitResult.Location = OutBeamLocation;
-		UE_LOG(LogTemp, Warning, TEXT("Weapon trace did not hit any surface."));
 		return false;
 	}
-
-	// Draw debug sphere where the hit occurred
-	// DrawDebugSphere(GetWorld(), OutHitResult.Location, 10.0f, 12, FColor::Blue, false, 2.0f);
-
-	UE_LOG(LogTemp, Log, TEXT("Weapon trace hit at location: %s"), *OutHitResult.Location.ToString());
 
 	return true;
 }
 
-
-
 void AShooterCharacter::AimingButtonPressed()
 {
 	bAimingButtonPressed = true;
-	if (CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping && CombatState != ECombatState::ECS_Stunned)
+	if (CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping)
 	{
 		Aim();
 	}
@@ -526,12 +427,28 @@ void AShooterCharacter::CalculateCrosshairSpread(float DeltaTime)
 			60.f);
 	}
 
-	CrosshairSpreadMultiplier =
-		0.5f +
-		CrosshairVelocityFactor +
+	CrosshairSpreadMultiplier = 
+		0.5f + 
+		CrosshairVelocityFactor + 
 		CrosshairInAirFactor -
 		CrosshairAimFactor +
 		CrosshairShootingFactor;
+}
+
+void AShooterCharacter::StartCrosshairBulletFire()
+{
+	bFiringBullet = true;
+
+	GetWorldTimerManager().SetTimer(
+		CrosshairShootTimer, 
+		this, 
+		&AShooterCharacter::FinishCrosshairBulletFire, 
+		ShootTimeDuration);
+}
+
+void AShooterCharacter::FinishCrosshairBulletFire()
+{
+	bFiringBullet = false;
 }
 
 void AShooterCharacter::FireButtonPressed()
@@ -559,9 +476,7 @@ void AShooterCharacter::StartFireTimer()
 
 void AShooterCharacter::AutoFireReset()
 {
-	if (CombatState == ECombatState::ECS_Stunned) return;
 	CombatState = ECombatState::ECS_Unoccupied;
-	
 	if (EquippedWeapon == nullptr) return;
 	if (WeaponHasAmmo())
 	{
@@ -578,72 +493,47 @@ void AShooterCharacter::AutoFireReset()
 }
 
 bool AShooterCharacter::TraceUnderCrosshairs(
-    FHitResult& OutHitResult,
-    FVector& OutHitLocation)
+	FHitResult& OutHitResult,
+	FVector& OutHitLocation)
 {
-    // Get Viewport Size
-    FVector2D ViewportSize;
-    if (GEngine && GEngine->GameViewport)
-    {
-        GEngine->GameViewport->GetViewportSize(ViewportSize);
-    }
+	// Get Viewport Size
+	FVector2D ViewportSize;
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewportSize);
+	}
 
-    // Get screen space location of crosshairs
-    FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
-    FVector CrosshairWorldPosition;
-    FVector CrosshairWorldDirection;
+	// Get screen space location of crosshairs
+	FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
+	FVector CrosshairWorldPosition;
+	FVector CrosshairWorldDirection;
 
-	
-    // Get world position and direction of crosshairs
-    bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
-        UGameplayStatics::GetPlayerController(this, 0),
-        CrosshairLocation,
-        CrosshairWorldPosition,
-        CrosshairWorldDirection);
+	// Get world position and direction of crosshairs
+	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+		UGameplayStatics::GetPlayerController(this, 0),
+		CrosshairLocation,
+		CrosshairWorldPosition,
+		CrosshairWorldDirection);
 
-    if (bScreenToWorld)
-    {
-        // Log deprojected values
-        UE_LOG(LogTemp, Log, TEXT("Crosshair World Position: %s, Direction: %s"),
-            *CrosshairWorldPosition.ToString(), *CrosshairWorldDirection.ToString());
-
-        // Trace from Crosshair world location outward
-        const FVector Start{ CrosshairWorldPosition };
-        const FVector End{ Start + CrosshairWorldDirection * 50000.f }; // Adjusted trace distance for testing
-        OutHitLocation = End;
-
-        // Draw a debug line for the trace
-        // DrawDebugLine(GetWorld(), Start, End, FColor::Yellow, false, 2.0f, 0, 1.0f);
-
-        // Perform the line trace
-        GetWorld()->LineTraceSingleByChannel(
-            OutHitResult,
-            Start,
-            End,
-            ECollisionChannel::ECC_Visibility);
-
-        if (OutHitResult.bBlockingHit)
-        {
-            OutHitLocation = OutHitResult.Location;
-
-            // Log information about the hit actor
-            const AActor* HitActor = OutHitResult.GetActor();
-            if (HitActor)
-            {
-                UE_LOG(LogTemp, Log, TEXT("Hit Actor: %s at location: %s"),
-                    *HitActor->GetName(), *OutHitLocation.ToString());
-            }
-
-            return true;
-        }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("Failed to deproject screen to world."));
-    }
-    return false;
+	if (bScreenToWorld)
+	{
+		// Trace from Crosshair world location outward
+		const FVector Start{ CrosshairWorldPosition };
+		const FVector End{ Start + CrosshairWorldDirection * 50'000.f };
+		OutHitLocation = End;
+		GetWorld()->LineTraceSingleByChannel(
+			OutHitResult,
+			Start,
+			End,
+			ECollisionChannel::ECC_Visibility);
+		if (OutHitResult.bBlockingHit)
+		{
+			OutHitLocation = OutHitResult.Location;
+			return true;
+		}
+	}
+	return false;
 }
-
 
 void AShooterCharacter::TraceForItems()
 {
@@ -681,13 +571,8 @@ void AShooterCharacter::TraceForItems()
 
 			if (TraceHitItem && TraceHitItem->GetPickupWidget())
 			{
-
-				if (ItemGuids.Contains(TraceHitItem->GetGuid()))
-				{
-					// Show Item's Pickup Widget
-					TraceHitItem->GetPickupWidget()->SetVisibility(true);
-				}
-
+				// Show Item's Pickup Widget
+				TraceHitItem->GetPickupWidget()->SetVisibility(true);
 				TraceHitItem->EnableCustomDepth();
 
 				if (Inventory.Num() >= INVENTORY_CAPACITY)
@@ -833,73 +718,89 @@ void AShooterCharacter::PlayFireSound()
 
 void AShooterCharacter::SendBullet()
 {
-    const USkeletalMeshSocket* BarrelSocket = EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
-    
-    if (BarrelSocket)
-    {
-        const FTransform SocketTransform = BarrelSocket->GetSocketTransform(EquippedWeapon->GetItemMesh());
+	// Send bullet
+	const USkeletalMeshSocket* BarrelSocket =
+		EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
+	if (BarrelSocket)
+	{
+		const FTransform SocketTransform = BarrelSocket->GetSocketTransform(
+			EquippedWeapon->GetItemMesh());
 
-        if (EquippedWeapon->GetMuzzleFlash())
-        {
-            UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), SocketTransform);
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Muzzle flash is missing!"));
-        }
+		if (EquippedWeapon->GetMuzzleFlash())
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), SocketTransform);
+		}
 
-        FHitResult BeamHitResult;
-        bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamHitResult);
+		FHitResult BeamHitResult;
+		bool bBeamEnd = GetBeamEndLocation(
+			SocketTransform.GetLocation(), BeamHitResult);
+		if (bBeamEnd)
+		{
+			// Does hit Actor implement BulletHitInterface?
+			if (BeamHitResult.GetActor())
+			{
+				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
+				if (BulletHitInterface)
+				{
+					BulletHitInterface->BulletHit_Implementation(BeamHitResult);
+				}
 
-        // Visualize the bullet trace
-        // DrawDebugLine(GetWorld(), SocketTransform.GetLocation(), BeamHitResult.Location, FColor::Yellow, false, 2.0f, 0, 1.0f);
+				AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
+				if (HitEnemy)
+				{
+					int32 Damage{};
+					if (BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone())
+					{
+						// Head shot
+						Damage = EquippedWeapon->GetHeadShotDamage();
+						UGameplayStatics::ApplyDamage(
+							BeamHitResult.GetActor(),
+							Damage,
+							GetController(),
+							this,
+							UDamageType::StaticClass());
+						HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, true);
+					}
+					else
+					{
+						// Body shot
+						Damage = EquippedWeapon->GetDamage();
+						UGameplayStatics::ApplyDamage(
+							BeamHitResult.GetActor(),
+							Damage,
+							GetController(),
+							this,
+							UDamageType::StaticClass());
+						HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, false);
+					}
+					
+					
+				}
+			}
+			else
+			{
+				// Spawn default particles
+				if (ImpactParticles)
+				{
+					UGameplayStatics::SpawnEmitterAtLocation(
+						GetWorld(),
+						ImpactParticles,
+						BeamHitResult.Location);
+				}
+			}
 
-        if (bBeamEnd)
-        {
-            UE_LOG(LogTemp, Log, TEXT("Bullet hit at location: %s"), *BeamHitResult.Location.ToString());
 
-            if (BeamHitResult.GetActor())
-            {
-                UE_LOG(LogTemp, Log, TEXT("Hit actor: %s"), *BeamHitResult.GetActor()->GetName());
-                
-                AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
-                if (HitEnemy)
-                {
-                    int32 Damage = BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone() ? EquippedWeapon->GetHeadShotDamage() : EquippedWeapon->GetDamage();
-                    UGameplayStatics::ApplyDamage(HitEnemy, Damage, GetController(), this, UDamageType::StaticClass());
-                    HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone());
-                }
-            }
-
-            if (ImpactParticles)
-            {
-                UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, BeamHitResult.Location);
-            }
-
-            if (BeamParticles)
-            {
-                UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeamParticles, SocketTransform);
-                if (Beam)
-                {
-                    Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
-                }
-            }
-            else
-            {
-                UE_LOG(LogTemp, Warning, TEXT("BeamParticles is nullptr!"));
-            }
-        }
-        else
-        {
-            UE_LOG(LogTemp, Warning, TEXT("Beam trace did not hit any surface."));
-        }
-    }
-    else
-    {
-        UE_LOG(LogTemp, Warning, TEXT("BarrelSocket is nullptr!"));
-    }
+			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
+				GetWorld(),
+				BeamParticles,
+				SocketTransform);
+			if (Beam)
+			{
+				Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
+			}
+		}
+	}
 }
-
 
 void AShooterCharacter::PlayGunfireMontage()
 {
@@ -910,6 +811,9 @@ void AShooterCharacter::PlayGunfireMontage()
 		AnimInstance->Montage_Play(HipFireMontage);
 		AnimInstance->Montage_JumpToSection(FName("StartFire"));
 	}
+	
+	// Start bullet fire timer for crosshairs
+	StartCrosshairBulletFire();
 }
 
 void AShooterCharacter::ReloadButtonPressed()
@@ -1191,69 +1095,21 @@ void AShooterCharacter::UnHighlightInventorySlot()
 	HighlightedSlot = -1;
 }
 
-void AShooterCharacter::Stun()
-{
-	if (Health <= 0.f) return;
-
-	CombatState = ECombatState::ECS_Stunned;
-
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	if (AnimInstance && HitReactMontage)
-	{
-		AnimInstance->Montage_Play(HitReactMontage);
-	}
-}
-
 EPhysicalSurface AShooterCharacter::GetSurfaceType()
 {
 	FHitResult HitResult;
-    
-	// Start trace from the character's location
 	const FVector Start{ GetActorLocation() };
-    
-	// Trace downwards by 400 units to check for physical materials beneath the character
 	const FVector End{ Start + FVector(0.f, 0.f, -400.f) };
-    
-	// Set up the query parameters for the trace
 	FCollisionQueryParams QueryParams;
-	QueryParams.bReturnPhysicalMaterial = true; // Ensure we get the physical material
+	QueryParams.bReturnPhysicalMaterial = true;
 
-	// Perform the line trace
-	bool bHit = GetWorld()->LineTraceSingleByChannel(
+	GetWorld()->LineTraceSingleByChannel(
 		HitResult,
 		Start,
 		End,
 		ECollisionChannel::ECC_Visibility,
 		QueryParams);
-
-	// If the trace hit something, return the surface type
-	if (bHit)
-	{
-		// Log the hit location and the surface type for debugging
-		UE_LOG(LogTemp, Log, TEXT("Hit surface at: %s"), *HitResult.Location.ToString());
-        
-		// Get the physical material and determine the surface type
-		return UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
-	}
-	else
-	{
-		// If no hit was detected, log a warning and return a default surface type
-		UE_LOG(LogTemp, Warning, TEXT("No surface hit while tracing for surface type."));
-        
-		// Return a default surface type if no hit
-		return EPhysicalSurface::SurfaceType_Default; // Replace with appropriate default
-	}
-}
-
-
-void AShooterCharacter::EndStun()
-{
-	CombatState = ECombatState::ECS_Unoccupied;
-
-	if (bAimingButtonPressed)
-	{
-		Aim();
-	}
+	return UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
 }
 
 int32 AShooterCharacter::GetInterpLocationIndex()
@@ -1297,8 +1153,8 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AShooterCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AShooterCharacter::MoveRight);
-	PlayerInputComponent->BindAxis("TurnAtRate", this, &AShooterCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUpAtRate", this, &AShooterCharacter::LookUpAtRate);
+	PlayerInputComponent->BindAxis("TurnRate", this, &AShooterCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUpRate", this, &AShooterCharacter::LookUpAtRate);
 	PlayerInputComponent->BindAxis("Turn", this, &AShooterCharacter::Turn);
 	PlayerInputComponent->BindAxis("LookUp", this, &AShooterCharacter::LookUp);
 
@@ -1343,8 +1199,6 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 void AShooterCharacter::FinishReloading()
 {
-	if (CombatState == ECombatState::ECS_Stunned) return;
-
 	// Update the Combat State
 	CombatState = ECombatState::ECS_Unoccupied;
 
@@ -1386,8 +1240,6 @@ void AShooterCharacter::FinishReloading()
 
 void AShooterCharacter::FinishEquipping()
 {
-	if (CombatState == ECombatState::ECS_Stunned) return;
-
 	CombatState = ECombatState::ECS_Unoccupied;
 	if (bAimingButtonPressed)
 	{
@@ -1410,28 +1262,17 @@ float AShooterCharacter::GetCrosshairSpreadMultiplier() const
 	return CrosshairSpreadMultiplier;
 }
 
-void AShooterCharacter::IncrementOverlappedItemCount(int8 Amount, FGuid ID)
+void AShooterCharacter::IncrementOverlappedItemCount(int8 Amount)
 {
 	if (OverlappedItemCount + Amount <= 0)
 	{
 		OverlappedItemCount = 0;
 		bShouldTraceForItems = false;
-
-		ItemGuids.Empty();
 	}
 	else
 	{
 		OverlappedItemCount += Amount;
 		bShouldTraceForItems = true;
-
-		if (Amount > 0)
-		{
-			ItemGuids.Add(ID);
-		}
-		else
-		{
-			ItemGuids.Remove(ID);
-		}
 	}
 }
 

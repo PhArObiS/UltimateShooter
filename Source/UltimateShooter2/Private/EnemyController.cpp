@@ -11,10 +11,10 @@ AEnemyController::AEnemyController()
 {
 	BlackboardComponent = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BlackboardComponent"));
 	check(BlackboardComponent);
-
+	
 	BehaviorTreeComponent = CreateDefaultSubobject<UBehaviorTreeComponent>(TEXT("BehaviorTreeComponent"));
 	check(BehaviorTreeComponent);
-}
+} 
 
 void AEnemyController::OnPossess(APawn* InPawn)
 {
