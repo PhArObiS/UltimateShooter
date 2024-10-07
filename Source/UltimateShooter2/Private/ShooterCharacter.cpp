@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "ShooterCharacter.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -21,6 +20,8 @@
 #include "UltimateShooter2/UltimateShooter2.h"
 #include "BulletHitInterface.h"
 #include "Enemy.h"
+#include "EnemyController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 
 // Sets default values
@@ -146,6 +147,16 @@ float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 	if (Health - DamageAmount <= 0.f)
 	{
 		Health = 0.f;
+		Die();
+
+		auto EnemyController = Cast<AEnemyController>(EventInstigator);
+		if (EnemyController)
+		{
+			EnemyController->GetBlackboardComponent()->SetValueAsBool(
+				FName(TEXT("CharacterDead")),
+				true
+			);
+		}
 	}
 	else
 	{
@@ -1099,9 +1110,11 @@ void AShooterCharacter::UnHighlightInventorySlot()
 
 void AShooterCharacter::Stun()
 {
+	if (Health <= 0.f) return;
+
 	CombatState = ECombatState::ECS_Stunned;
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance(); 
 	if (AnimInstance && HitReactMontage)
 	{
 		AnimInstance->Montage_Play(HitReactMontage);
@@ -1132,6 +1145,29 @@ void AShooterCharacter::EndStun()
 	if (bAimingButtonPressed)
 	{
 		Aim();
+	}
+}
+
+void AShooterCharacter::Die()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && DeathMontage)
+	{
+		AnimInstance->Montage_Play(DeathMontage);
+		AnimInstance->Montage_JumpToSection(FName("DeathA"), DeathMontage);
+	}
+	
+	// Start bullet fire timer for crosshairs
+	StartCrosshairBulletFire();
+}
+
+void AShooterCharacter::FinishDeath()
+{
+	GetMesh()->bPauseAnims = true;
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (PC)
+	{
+		DisableInput(PC);
 	}
 }
 
