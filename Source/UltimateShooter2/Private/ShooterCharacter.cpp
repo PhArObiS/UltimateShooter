@@ -141,8 +141,7 @@ AShooterCharacter::AShooterCharacter() :
 	InterpComp6->SetupAttachment(GetFollowCamera());
 }
 
-float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
-	AActor* DamageCauser)
+float AShooterCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (Health - DamageAmount <= 0.f)
 	{
@@ -755,7 +754,7 @@ void AShooterCharacter::SendBullet()
 				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
 				if (BulletHitInterface)
 				{
-					BulletHitInterface->BulletHit_Implementation(BeamHitResult);
+					BulletHitInterface->BulletHit_Implementation(BeamHitResult, this, GetController());
 				}
 
 				AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());

@@ -202,6 +202,7 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void FinishDeath();
+	
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

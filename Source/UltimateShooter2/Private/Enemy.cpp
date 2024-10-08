@@ -7,7 +7,6 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "DrawDebugHelpers.h"
 #include "EnemyController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Components/SphereComponent.h"
@@ -121,23 +120,6 @@ void AEnemy::BeginPlay()
 	const FVector WorldPatrolPoint2 = UKismetMathLibrary::TransformLocation(
 		GetActorTransform(),
 		PatrolPoint2);
-
-	DrawDebugSphere(
-		GetWorld(),
-		WorldPatrolPoint,
-		25.f,
-		12,
-		FColor::Red,
-		true
-	);
-	DrawDebugSphere(
-		GetWorld(),
-		WorldPatrolPoint2,
-		25.f,
-		12,
-		FColor::Red,
-		true
-	);
 
 	if (EnemyController)
 	{
@@ -254,10 +236,15 @@ void AEnemy::AgroSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 	auto Character = Cast<AShooterCharacter>(OtherActor);
 	if (Character)
 	{
-		// Set the value of the Target Blackboard Key
-		EnemyController->GetBlackboardComponent()->SetValueAsObject(
-			TEXT("Target"), 
-			Character);
+		if (EnemyController)
+		{
+			if (EnemyController->GetBlackboardComponent())
+			{
+				EnemyController->GetBlackboardComponent()->SetValueAsObject(
+					TEXT("Target"),
+					Character);
+			}
+		}
 	}
 }
 
@@ -353,26 +340,6 @@ FName AEnemy::GetAttackSectionName()
 	return SectionName;
 }
 
-void AEnemy::ActivateLeftWeapon()
-{
-	LeftWeaponCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-}
-
-void AEnemy::DeactivateLeftWeapon()
-{
-	LeftWeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-}
-
-void AEnemy::ActivateRightWeapon()
-{
-	RightWeaponCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-}
-
-void AEnemy::DeactivateRightWeapon()
-{
-	RightWeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-}
-
 void AEnemy::DoDamage(AShooterCharacter* Victim)
 {
 	if (Victim == nullptr) return;
@@ -451,7 +418,6 @@ void AEnemy::DestroyEnemy()
 	Destroy();
 }
 
-
 void AEnemy::OnLeftWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	auto Character = Cast<AShooterCharacter>(OtherActor);
@@ -474,6 +440,26 @@ void AEnemy::OnRightWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 	}
 }
 
+void AEnemy::ActivateLeftWeapon()
+{
+	LeftWeaponCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+
+void AEnemy::DeactivateLeftWeapon()
+{
+	LeftWeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
+void AEnemy::ActivateRightWeapon()
+{
+	RightWeaponCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+}
+
+void AEnemy::DeactivateRightWeapon()
+{
+	RightWeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+}
+
 // Called every frame
 void AEnemy::Tick(float DeltaTime)
 {
@@ -489,7 +475,7 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 }
 
-void AEnemy::BulletHit_Implementation(FHitResult HitResult)
+void AEnemy::BulletHit_Implementation(FHitResult HitResult, AActor* Shooter, AController* ShooterController)
 {
 	if (ImpactSound)
 	{
@@ -498,19 +484,6 @@ void AEnemy::BulletHit_Implementation(FHitResult HitResult)
 	if (ImpactParticles)
 	{
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, HitResult.Location, FRotator(0.f), true);
-	}
-
-	if (bDying) return;
-
-	ShowHealthBar();
-
-	// Determine whether bullet hit stuns
-	const float Stunned = FMath::FRandRange(0.f, 1.f);
-	if (Stunned <= StunChance)
-	{
-		// Stun the Enemy
-		PlayHitMontage(FName("HitReactFront"));
-		SetStunned(true);
 	}
 }
 
@@ -523,7 +496,7 @@ float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 			FName("Target"),
 			DamageCauser);
 	}
-
+	
 	if (Health - DamageAmount <= 0.f)
 	{
 		Health = 0.f;
@@ -533,5 +506,19 @@ float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 	{
 		Health -= DamageAmount;
 	}
+
+	if (bDying) return DamageAmount;
+
+	ShowHealthBar();
+
+	// Determine whether bullet hit stuns
+	const float Stunned = FMath::FRandRange(0.f, 1.f);
+	if (Stunned <= StunChance)
+	{
+		// Stun the Enemy
+		PlayHitMontage(FName("HitReactFront"));
+		SetStunned(true);
+	}
+
 	return DamageAmount;
 }
