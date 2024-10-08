@@ -504,9 +504,7 @@ void AShooterCharacter::AutoFireReset()
 	}
 }
 
-bool AShooterCharacter::TraceUnderCrosshairs(
-	FHitResult& OutHitResult,
-	FVector& OutHitLocation)
+bool AShooterCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHitLocation)
 {
 	// Get Viewport Size
 	FVector2D ViewportSize;
@@ -532,96 +530,111 @@ bool AShooterCharacter::TraceUnderCrosshairs(
 		// Trace from Crosshair world location outward
 		const FVector Start{ CrosshairWorldPosition };
 		const FVector End{ Start + CrosshairWorldDirection * 50'000.f };
-		OutHitLocation = End;
+        
+		// Log the start and end positions of the trace
+		UE_LOG(LogTemp, Warning, TEXT("TraceUnderCrosshairs Start: %s, End: %s"), *Start.ToString(), *End.ToString());
+
+		// Perform line trace
 		GetWorld()->LineTraceSingleByChannel(
 			OutHitResult,
 			Start,
 			End,
 			ECollisionChannel::ECC_Visibility);
+        
+		// If hit, log details about the hit actor and location
 		if (OutHitResult.bBlockingHit)
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s at Location: %s"), *OutHitResult.GetActor()->GetName(), *OutHitResult.Location.ToString());
 			OutHitLocation = OutHitResult.Location;
 			return true;
 		}
+		else
+		{
+			// Log when no hit is detected
+			UE_LOG(LogTemp, Warning, TEXT("No hit detected"));
+		}
 	}
+
 	return false;
 }
 
+
 void AShooterCharacter::TraceForItems()
 {
-	if (bShouldTraceForItems)
-	{
-		FHitResult ItemTraceResult;
-		FVector HitLocation;
-		TraceUnderCrosshairs(ItemTraceResult, HitLocation);
-		if (ItemTraceResult.bBlockingHit)
-		{
-			TraceHitItem = Cast<AItem>(ItemTraceResult.GetActor());
-			const auto TraceHitWeapon = Cast<AWeapon>(TraceHitItem);
-			if (TraceHitWeapon)
-			{
-				if (HighlightedSlot == -1)
-				{
-					// Not currently highlighting a slot; highlight one
-					HighlightInventorySlot();
-				}
-			}
-			else
-			{
-				// Is a slot being highlighted?
-				if (HighlightedSlot != -1)
-				{
-					// UnHighlight the slot
-					UnHighlightInventorySlot();
-				}
-			}
+    if (bShouldTraceForItems)
+    {
+        FHitResult ItemTraceResult;
+        FVector HitLocation;
+        TraceUnderCrosshairs(ItemTraceResult, HitLocation);
 
-			if (TraceHitItem && TraceHitItem->GetItemState() == EItemState::EIS_EquipInterping)
-			{
-				TraceHitItem = nullptr;
-			}
+        if (ItemTraceResult.bBlockingHit)
+        {
+            TraceHitItem = Cast<AItem>(ItemTraceResult.GetActor());
+            const auto TraceHitWeapon = Cast<AWeapon>(TraceHitItem);
 
-			if (TraceHitItem && TraceHitItem->GetPickupWidget())
-			{
-				// Show Item's Pickup Widget
-				TraceHitItem->GetPickupWidget()->SetVisibility(true);
-				TraceHitItem->EnableCustomDepth();
+            if (TraceHitWeapon)
+            {
+                if (HighlightedSlot == -1)
+                {
+                    // Not currently highlighting a slot; highlight one
+                    HighlightInventorySlot();
+                }
+            }
+            else
+            {
+                if (HighlightedSlot != -1)
+                {
+                    // UnHighlight the slot
+                    UnHighlightInventorySlot();
+                }
+            }
 
-				if (Inventory.Num() >= INVENTORY_CAPACITY)
-				{
-					// Inventory is full
-					TraceHitItem->SetCharacterInventoryFull(true);
-				}
-				else
-				{
-					// Inventory has room
-					TraceHitItem->SetCharacterInventoryFull(false);
-				}
-			}
+            if (TraceHitItem && TraceHitItem->GetItemState() == EItemState::EIS_EquipInterping)
+            {
+                TraceHitItem = nullptr;
+            }
 
-			// We hit an AItem last frame
-			if (TraceHitItemLastFrame)
-			{
-				if (TraceHitItem != TraceHitItemLastFrame)
-				{
-					// We are hitting a different AItem this frame from last frame
-					// Or AItem is null.
-					TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
-					TraceHitItemLastFrame->DisableCustomDepth();
-				}
-			}
-			// Store a reference to HitItem for next frame
-			TraceHitItemLastFrame = TraceHitItem;
-		}
-	}
-	else if (TraceHitItemLastFrame)
-	{
-		// No longer overlapping any items,
-		// Item last frame should not show widget
-		TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
-		TraceHitItemLastFrame->DisableCustomDepth();
-	}
+            if (TraceHitItem && TraceHitItem->GetPickupWidget())
+            {
+                // Show Item's Pickup Widget
+                TraceHitItem->GetPickupWidget()->SetVisibility(true);
+                TraceHitItem->EnableCustomDepth();
+
+                if (Inventory.Num() >= INVENTORY_CAPACITY)
+                {
+                    // Inventory is full
+                    TraceHitItem->SetCharacterInventoryFull(true);
+                }
+                else
+                {
+                    // Inventory has room
+                    TraceHitItem->SetCharacterInventoryFull(false);
+                }
+            }
+
+            // Handle last frame's hit
+            if (TraceHitItemLastFrame)
+            {
+                if (TraceHitItem != TraceHitItemLastFrame)
+                {
+                    // Different item hit this frame, hide last frame's widget
+                    TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+                    TraceHitItemLastFrame->DisableCustomDepth();
+                }
+            }
+
+            // Store the current hit item for next frame
+            TraceHitItemLastFrame = TraceHitItem;
+        }
+    }
+    else if (TraceHitItemLastFrame)
+    {
+        // No longer overlapping any items, hide last frame's widget
+        TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+        TraceHitItemLastFrame->DisableCustomDepth();
+    }
 }
+
 
 AWeapon* AShooterCharacter::SpawnDefaultWeapon()
 {
@@ -730,89 +743,93 @@ void AShooterCharacter::PlayFireSound()
 
 void AShooterCharacter::SendBullet()
 {
-	// Send bullet
-	const USkeletalMeshSocket* BarrelSocket =
-		EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
-	if (BarrelSocket)
-	{
-		const FTransform SocketTransform = BarrelSocket->GetSocketTransform(
-			EquippedWeapon->GetItemMesh());
+    // Get the barrel socket on the equipped weapon
+    const USkeletalMeshSocket* BarrelSocket = EquippedWeapon->GetItemMesh()->GetSocketByName("BarrelSocket");
+    if (BarrelSocket)
+    {
+        // Get the socket transform
+        const FTransform SocketTransform = BarrelSocket->GetSocketTransform(EquippedWeapon->GetItemMesh());
+        
+        // Log barrel socket location for troubleshooting
+        UE_LOG(LogTemp, Warning, TEXT("Barrel Socket Location: %s"), *SocketTransform.GetLocation().ToString());
 
-		if (EquippedWeapon->GetMuzzleFlash())
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), SocketTransform);
-		}
+        // Spawn muzzle flash if available
+        if (EquippedWeapon->GetMuzzleFlash())
+        {
+            UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquippedWeapon->GetMuzzleFlash(), SocketTransform);
+        }
 
-		FHitResult BeamHitResult;
-		bool bBeamEnd = GetBeamEndLocation(
-			SocketTransform.GetLocation(), BeamHitResult);
-		if (bBeamEnd)
-		{
-			// Does hit Actor implement BulletHitInterface?
-			if (BeamHitResult.GetActor())
-			{
-				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
-				if (BulletHitInterface)
-				{
-					BulletHitInterface->BulletHit_Implementation(BeamHitResult, this, GetController());
-				}
+        // Perform a trace to find where the bullet should end
+        FHitResult BeamHitResult;
+        bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamHitResult);
 
-				AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
-				if (HitEnemy)
-				{
-					int32 Damage{};
-					if (BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone())
-					{
-						// Head shot
-						Damage = EquippedWeapon->GetHeadShotDamage();
-						UGameplayStatics::ApplyDamage(
-							BeamHitResult.GetActor(),
-							Damage,
-							GetController(),
-							this,
-							UDamageType::StaticClass());
-						HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, true);
-					}
-					else
-					{
-						// Body shot
-						Damage = EquippedWeapon->GetDamage();
-						UGameplayStatics::ApplyDamage(
-							BeamHitResult.GetActor(),
-							Damage,
-							GetController(),
-							this,
-							UDamageType::StaticClass());
-						HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, false);
-					}
-					
-					
-				}
-			}
-			else
-			{
-				// Spawn default particles
-				if (ImpactParticles)
-				{
-					UGameplayStatics::SpawnEmitterAtLocation(
-						GetWorld(),
-						ImpactParticles,
-						BeamHitResult.Location);
-				}
-			}
+        // Check if beam hit something
+        if (bBeamEnd)
+        {
+            if (BeamHitResult.GetActor())
+            {
+                // Log hit actor and location
+                UE_LOG(LogTemp, Warning, TEXT("Beam Hit Actor: %s at Location: %s"), *BeamHitResult.GetActor()->GetName(), *BeamHitResult.Location.ToString());
 
+                // Check if the hit actor implements the bullet hit interface
+                IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitResult.GetActor());
+                if (BulletHitInterface)
+                {
+                    BulletHitInterface->BulletHit_Implementation(BeamHitResult, this, GetController());
+                }
 
-			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
-				GetWorld(),
-				BeamParticles,
-				SocketTransform);
-			if (Beam)
-			{
-				Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
-			}
-		}
-	}
+                // Handle hitting an enemy
+                AEnemy* HitEnemy = Cast<AEnemy>(BeamHitResult.GetActor());
+                if (HitEnemy)
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("Hit Enemy: %s"), *HitEnemy->GetName());
+
+                    int32 Damage{};
+                    if (BeamHitResult.BoneName.ToString() == HitEnemy->GetHeadBone())
+                    {
+                        // Log headshot
+                        UE_LOG(LogTemp, Warning, TEXT("Headshot!"));
+
+                        Damage = EquippedWeapon->GetHeadShotDamage();
+                        UGameplayStatics::ApplyDamage(BeamHitResult.GetActor(), Damage, GetController(), this, UDamageType::StaticClass());
+                        HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, true);
+                    }
+                    else
+                    {
+                        // Log body shot
+                        UE_LOG(LogTemp, Warning, TEXT("Body shot"));
+
+                        Damage = EquippedWeapon->GetDamage();
+                        UGameplayStatics::ApplyDamage(BeamHitResult.GetActor(), Damage, GetController(), this, UDamageType::StaticClass());
+                        HitEnemy->ShowHitNumber(Damage, BeamHitResult.Location, false);
+                    }
+                }
+            }
+            else
+            {
+                // Log no actor hit, but spawn default impact particles
+                UE_LOG(LogTemp, Warning, TEXT("No actor hit, spawning default particles"));
+                if (ImpactParticles)
+                {
+                    UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles, BeamHitResult.Location);
+                }
+            }
+
+            // Spawn the beam particle
+            UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BeamParticles, SocketTransform);
+            if (Beam)
+            {
+                Beam->SetVectorParameter(FName("Target"), BeamHitResult.Location);
+            }
+        }
+        else
+        {
+            // Log failure to find beam end location
+            UE_LOG(LogTemp, Warning, TEXT("Failed to find beam end location"));
+        }
+    }
 }
+
 
 void AShooterCharacter::PlayGunfireMontage()
 {
@@ -1211,47 +1228,33 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AShooterCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AShooterCharacter::MoveRight);
-	PlayerInputComponent->BindAxis("TurnRate", this, &AShooterCharacter::TurnAtRate);
-	PlayerInputComponent->BindAxis("LookUpRate", this, &AShooterCharacter::LookUpAtRate);
+	PlayerInputComponent->BindAxis("TurnAtRate", this, &AShooterCharacter::TurnAtRate);
+	PlayerInputComponent->BindAxis("LookUpAtRate", this, &AShooterCharacter::LookUpAtRate);
 	PlayerInputComponent->BindAxis("Turn", this, &AShooterCharacter::Turn);
 	PlayerInputComponent->BindAxis("LookUp", this, &AShooterCharacter::LookUp);
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AShooterCharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this,
-		&AShooterCharacter::FireButtonPressed);
-	PlayerInputComponent->BindAction("FireButton", IE_Released, this,
-		&AShooterCharacter::FireButtonReleased);
+	PlayerInputComponent->BindAction("FireButton", IE_Pressed, this, &AShooterCharacter::FireButtonPressed);
+	PlayerInputComponent->BindAction("FireButton", IE_Released, this, &AShooterCharacter::FireButtonReleased);
 
-	PlayerInputComponent->BindAction("AimingButton", IE_Pressed, this,
-		&AShooterCharacter::AimingButtonPressed);
-	PlayerInputComponent->BindAction("AimingButton", IE_Released, this,
-		&AShooterCharacter::AimingButtonReleased);
+	PlayerInputComponent->BindAction("AimingButton", IE_Pressed, this, &AShooterCharacter::AimingButtonPressed);
+	PlayerInputComponent->BindAction("AimingButton", IE_Released, this, &AShooterCharacter::AimingButtonReleased);
 
-	PlayerInputComponent->BindAction("Select", IE_Pressed, this,
-		&AShooterCharacter::SelectButtonPressed);
-	PlayerInputComponent->BindAction("Select", IE_Released, this,
-		&AShooterCharacter::SelectButtonReleased);
+	PlayerInputComponent->BindAction("Select", IE_Pressed, this, &AShooterCharacter::SelectButtonPressed);
+	PlayerInputComponent->BindAction("Select", IE_Released, this, &AShooterCharacter::SelectButtonReleased);
 
-	PlayerInputComponent->BindAction("ReloadButton", IE_Pressed, this,
-		&AShooterCharacter::ReloadButtonPressed);
+	PlayerInputComponent->BindAction("ReloadButton", IE_Pressed, this, &AShooterCharacter::ReloadButtonPressed);
 
-	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this,
-		&AShooterCharacter::CrouchButtonPressed);
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed, this, &AShooterCharacter::CrouchButtonPressed);
 
-	PlayerInputComponent->BindAction("FKey", IE_Pressed, this,
-		&AShooterCharacter::FKeyPressed);
-	PlayerInputComponent->BindAction("1Key", IE_Pressed, this,
-		&AShooterCharacter::OneKeyPressed);
-	PlayerInputComponent->BindAction("2Key", IE_Pressed, this,
-		&AShooterCharacter::TwoKeyPressed);
-	PlayerInputComponent->BindAction("3Key", IE_Pressed, this,
-		&AShooterCharacter::ThreeKeyPressed);
-	PlayerInputComponent->BindAction("4Key", IE_Pressed, this,
-		&AShooterCharacter::FourKeyPressed);
-	PlayerInputComponent->BindAction("5Key", IE_Pressed, this,
-		&AShooterCharacter::FiveKeyPressed);
+	PlayerInputComponent->BindAction("FKey", IE_Pressed, this, &AShooterCharacter::FKeyPressed);
+	PlayerInputComponent->BindAction("1Key", IE_Pressed, this, &AShooterCharacter::OneKeyPressed);
+	PlayerInputComponent->BindAction("2Key", IE_Pressed, this, &AShooterCharacter::TwoKeyPressed);
+	PlayerInputComponent->BindAction("3Key", IE_Pressed, this, &AShooterCharacter::ThreeKeyPressed);
+	PlayerInputComponent->BindAction("4Key", IE_Pressed, this, &AShooterCharacter::FourKeyPressed);
+	PlayerInputComponent->BindAction("5Key", IE_Pressed, this, &AShooterCharacter::FiveKeyPressed);
 
 }
 
